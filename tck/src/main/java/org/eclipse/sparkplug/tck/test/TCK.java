@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2021, 2023 Ian Craggs
+ * Copyright (c) 2021, 2024 Ian Craggs
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -115,7 +115,7 @@ public class TCK {
             if (e.getMessage() != null) {
                 LOGGER.error(e.getMessage());
             }
-            MQTTLog("OVERALL: NOT EXECUTED"); // Ensure the test ends
+            MQTTResults("OVERALL: NOT EXECUTED"); // Ensure the test ends
         } catch (final Exception e) {
             LOGGER.error("Could not find or set test class " + profile.name().toLowerCase() + "." + test, e);
         }
