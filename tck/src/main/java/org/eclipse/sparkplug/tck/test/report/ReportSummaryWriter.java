@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2023 Anja Helmbrecht-Schaar
+ * Copyright (c) 2023, 2024 Anja Helmbrecht-Schaar, Ian Craggs
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -104,7 +104,7 @@ public class ReportSummaryWriter {
 
             this.processSparkplugTCKLogfile();
 
-            DateFormat df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss.");
+            DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
             df.format(System.currentTimeMillis());
 
             ArrayList<String> lines = new ArrayList<>();
@@ -113,8 +113,11 @@ public class ReportSummaryWriter {
             lines.add(REPORT_TITLE);
             lines.add(HtmlConstants.TITLE_END);
             lines.add("Date: " + df.format(System.currentTimeMillis()));
-            if( !warnings.isEmpty())
-                lines.add(HtmlConstants.CAP + warnings + HtmlConstants.CAP_END);
+            if( !warnings.isEmpty()) {
+                for (String warning: warnings) {
+                    lines.add(CAP + warning + CAP_END);
+                }
+            }
 
             lines.add(exportAsHtml(brokerIds));
             lines.add(exportAsHtml(hostIds));
@@ -199,14 +202,16 @@ public class ReportSummaryWriter {
             String[] resultArray = currentLine.split(": ", 2);
             String assertionId = resultArray[0];
             String result = resultArray[1].replaceAll(";", "");
+            boolean hasSet = false;
             if (assertionId.startsWith("Monitor:")) {
                 assertionId = assertionId.replace("Monitor:", "");
+                hasSet = org.eclipse.sparkplug.tck.test.Monitor.testIds.contains(assertionId);
+            } else {
+                LOGGER.trace("Reporting: Check Assertion {} from: {}.{} with result {}", assertionId, profile, test, result);
+                hasSet = setCurrentTest(test, dateTime, assertionId, result,
+                        ("broker".equals(profile)) ?
+                                brokerIds : ("host".equals(profile)) ? hostIds : edgeIds);
             }
-            LOGGER.trace("Reporting: Check Assertion {} from: {}.{} with result {}", assertionId, profile, test, result);
-            boolean hasSet = setCurrentTest(test, dateTime, assertionId, result,
-                    ("broker".equals(profile)) ?
-                            brokerIds : ("host".equals(profile)) ? hostIds : edgeIds);
-
             if (!(hasSet)) {
                 LOGGER.error("Reporting: Assertion not found in tests: Assertion {} from: {}.{}", assertionId, profile, test);
             }
