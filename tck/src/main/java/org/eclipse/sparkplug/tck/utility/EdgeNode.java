@@ -75,7 +75,9 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-@SpecVersion(spec = "sparkplug", version = "3.0.0")
+@SpecVersion(
+		spec = "sparkplug",
+		version = "3.0.1-SNAPSHOT")
 public class EdgeNode {
 
 	private static final Logger logger = LoggerFactory.getLogger("Sparkplug");

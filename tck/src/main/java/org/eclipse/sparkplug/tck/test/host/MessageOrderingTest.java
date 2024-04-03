@@ -80,11 +80,11 @@ import com.hivemq.extension.sdk.api.services.publish.PublishService;
 
 @SpecVersion(
 		spec = "sparkplug",
-		version = "3.0.0")
+		version = "3.0.1-SNAPSHOT")
 public class MessageOrderingTest extends TCKTest {
 	private static final Logger logger = LoggerFactory.getLogger("Sparkplug");
 	private final @NotNull Map<String, String> testResults = new HashMap<>();
-	private final @NotNull List<String> testIds =
+	public static final @NotNull List<String> testIds =
 			List.of(ID_OPERATIONAL_BEHAVIOR_HOST_REORDERING_PARAM, ID_OPERATIONAL_BEHAVIOR_HOST_REORDERING_START,
 					ID_OPERATIONAL_BEHAVIOR_HOST_REORDERING_REBIRTH, ID_OPERATIONAL_BEHAVIOR_HOST_REORDERING_SUCCESS);
 	private @NotNull String deviceId;

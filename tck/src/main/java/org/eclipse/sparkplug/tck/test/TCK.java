@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2021, 2023 Ian Craggs
+ * Copyright (c) 2021, 2024 Ian Craggs
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -40,53 +40,90 @@ import com.hivemq.extension.sdk.api.services.Services;
 import com.hivemq.extension.sdk.api.services.builder.Builders;
 import com.hivemq.extension.sdk.api.services.publish.Publish;
 import com.hivemq.extension.sdk.api.services.publish.PublishService;
+import org.eclipse.sparkplug.tck.test.common.Constants.Profile;
+import org.eclipse.sparkplug.tck.utility.EdgeNode;
+import org.eclipse.sparkplug.tck.utility.HostApplication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.Constructor;
+import java.nio.ByteBuffer;
+import java.util.TreeMap;
+
+import static org.eclipse.sparkplug.tck.test.common.Constants.TCK_RESULTS_TOPIC;
 
 /**
  * @author Ian Craggs
  */
 public class TCK {
 
-	private static final @NotNull Logger logger = LoggerFactory.getLogger("Sparkplug");
+    private static final @NotNull Logger LOGGER = LoggerFactory.getLogger("Sparkplug");
+    private final HostApplication hostApps = new HostApplication();
+    private final EdgeNode edgeNode = new EdgeNode();
+    private @Nullable TCKTest current = null;
+    /**
+     * The hasMonitor variable indicates whether the Monitor class should be run for a test. This is switched off for
+     * the Broker profile, and on for the Host and Edge profiles. The Monitor class holds tests for assertions that
+     * don't neatly fit into a single test scenario, or apply all the time, so it runs alongside all Host and Edge
+     * tests.
+     */
+    private @NotNull Boolean hasMonitor = true;
+    final Results results = new Results(Results.SPARKPLUG_TCKRESULTS_LOG, null, null);
+    private final Monitor monitor = new Monitor(results);
+    final Utilities utilities = new Utilities(monitor, hostApps, edgeNode);
+    public TCK() {
+        results.initialize(new String[0]);
+    }
 
-	private @Nullable TCKTest current = null;
-	final Results results = new Results();
-	private final Monitor monitor = new Monitor(results);
-	private final HostApplication hostApps = new HostApplication();
-	private final EdgeNode edgeNode = new EdgeNode();
+    public void newTest(final @NotNull Profile profile, final @NotNull String test, final @NotNull String[] parms) {
 
-	public class Utilities {
-		private Monitor monitor;
-		private HostApplication hostApps;
-		private EdgeNode edgeNode;
+        LOGGER.info("Test requested " + profile.name().toLowerCase() + " " + test);
 
-		public Utilities(Monitor monitor, HostApplication hostApps, EdgeNode edgeNode) {
-			this.monitor = monitor;
-			this.hostApps = hostApps;
-			this.edgeNode = edgeNode;
-		}
+        try {
+            final Class testClass =
+                    Class.forName("org.eclipse.sparkplug.tck.test." + profile.name().toLowerCase() + "." + test);
 
-		public Monitor getMonitor() {
-			return monitor;
-		}
+            try {
+                final Class[] types = {this.getClass(), String[].class};
+                final Constructor constructor = testClass.getConstructor(types);
+                final Object[] parameters = {this, parms};
+                current = (TCKTest) constructor.newInstance(parameters);
+            } catch (NoSuchMethodException e) {
+                try {
+                    final Class[] types = {this.getClass(), String[].class, Results.Config.class};
+                    final Constructor constructor = testClass.getConstructor(types);
+                    final Object[] parameters = {this, parms, results.getConfig()};
+                    current = (TCKTest) constructor.newInstance(parameters);
+                } catch (NoSuchMethodException f) {
+                    final Class[] types = {this.getClass(), Utilities.class, String[].class, Results.Config.class};
+                    final Constructor constructor = testClass.getConstructor(types);
+                    final Object[] parameters = {this, utilities, parms, results.getConfig()};
+                    current = (TCKTest) constructor.newInstance(parameters);
+                }
+            }
 
-		public HostApplication getHostApps() {
-			return hostApps;
-		}
+            hasMonitor = !profile.equals(Profile.BROKER);
 
-		public EdgeNode getEdgeNode() {
-			return edgeNode;
-		}
-	}
+            if (hasMonitor) {
+                monitor.startTest();
+            }
+            LOGGER.info("Test started successfully: " + profile.name().toLowerCase() + " " + test);
+            // tell the webconsole the test has started
+            MQTTLog("Test started successfully: " + profile.name().toLowerCase() + " " + test);
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            LOGGER.error("Error starting test " + profile.name().toLowerCase() + "." + test);
+            if (e.getMessage() != null) {
+                LOGGER.error(e.getMessage());
+            }
+            MQTTResults("OVERALL: NOT EXECUTED"); // Ensure the test ends
+        } catch (final Exception e) {
+            LOGGER.error("Could not find or set test class " + profile.name().toLowerCase() + "." + test, e);
+        }
+    }
 
-	Utilities utilities = new Utilities(monitor, hostApps, edgeNode);
-
-	/**
-	 * The hasMonitor variable indicates whether the Monitor class should be run for a test. This is switched off for
-	 * the Broker profile, and on for the Host and Edge profiles. The Monitor class holds tests for assertions that
-	 * don't neatly fit into a single test scenario, or apply all the time, so it runs alongside all Host and Edge
-	 * tests.
-	 */
-	private @NotNull Boolean hasMonitor = true;
+    public void endTest() {
+        endTest("");
+    }
 
 	final PublishService publishService = Services.publishService();
 
@@ -104,144 +141,110 @@ public class TCK {
 
 	private boolean listenerRunning = false;
 
-	public TCK() {
-		results.initialize(new String[0]);
+    public void endTest(String info) {
+        if (current != null) {
+            LOGGER.info("Test end requested for " + current.getName() + " " + info);
+            final TreeMap<String, String> testResults = new TreeMap<>();
 
-	}
+            if (!hasMonitor) {
+                current.endTest(testResults);
+            } else {
+                testResults.putAll(monitor.getResults());
+                current.endTest(testResults);
+                monitor.endTest(null);
+            }
+            current = null;
+        } else {
+            LOGGER.info("Test end requested but no test active");
+        }
+    }
 
-	public void newTest(final @NotNull Profile profile, final @NotNull String test, final @NotNull String[] parms) {
+    public void onMqttConnectionStart(ConnectionStartInput connectionStartInput) {
+        if (current != null) {
+            current.onMqttConnectionStart(connectionStartInput);
+        }
+        if (hasMonitor) {
+            monitor.onMqttConnectionStart(connectionStartInput);
+        }
+    }
 
-		logger.info("Test requested " + profile.name().toLowerCase() + " " + test);
+    public void onAuthenticationSuccessful(AuthenticationSuccessfulInput authenticationSuccessfulInput) {
+        if (current != null) {
+            current.onAuthenticationSuccessful(authenticationSuccessfulInput);
+        }
+        if (hasMonitor) {
+            monitor.onAuthenticationSuccessful(authenticationSuccessfulInput);
+        }
+    }
 
-		try {
-			final Class testClass =
-					Class.forName("org.eclipse.sparkplug.tck.test." + profile.name().toLowerCase() + "." + test);
+    public void onDisconnect(DisconnectEventInput disconnectEventInput) {
+        if (current != null) {
+            current.onDisconnect(disconnectEventInput);
+        }
+        if (hasMonitor) {
+            monitor.onDisconnect(disconnectEventInput);
+        }
+    }
 
-			try {
-				final Class[] types = { this.getClass(), String[].class };
-				final Constructor constructor = testClass.getConstructor(types);
-				final Object[] parameters = { this, parms };
-				current = (TCKTest) constructor.newInstance(parameters);
-			} catch (NoSuchMethodException e) {
-				try {
-					final Class[] types = { this.getClass(), String[].class, Results.Config.class };
-					final Constructor constructor = testClass.getConstructor(types);
-					final Object[] parameters = { this, parms, results.getConfig() };
-					current = (TCKTest) constructor.newInstance(parameters);
-				} catch (NoSuchMethodException f) {
-					final Class[] types = { this.getClass(), Utilities.class, String[].class, Results.Config.class };
-					final Constructor constructor = testClass.getConstructor(types);
-					final Object[] parameters = { this, utilities, parms, results.getConfig() };
-					current = (TCKTest) constructor.newInstance(parameters);
-				}
-			}
+    public void connect(final @NotNull String clientId, final @NotNull ConnectPacket packet) {
+        if (current != null) {
+            current.connect(clientId, packet);
+        }
+        if (hasMonitor) {
+            monitor.connect(clientId, packet);
+        }
+    }
 
-			hasMonitor = !profile.equals(Profile.BROKER);
+    public void disconnect(final @NotNull String clientId, final @NotNull DisconnectPacket packet) {
+        if (current != null) {
+            current.disconnect(clientId, packet);
+        }
+        if (hasMonitor) {
+            monitor.disconnect(clientId, packet);
+        }
+    }
 
-			if (hasMonitor) {
-				monitor.startTest();
-			}
+    public void subscribe(final @NotNull String clientId, final @NotNull SubscribePacket packet) {
+        if (current != null) {
+            current.subscribe(clientId, packet);
+        }
+        if (hasMonitor) {
+            monitor.subscribe(clientId, packet);
+        }
+    }
 
-			logger.info("Test started successfully: " + profile.name().toLowerCase() + " " + test);
+    public void publish(final @NotNull String clientId, final @NotNull PublishPacket packet) {
+        LOGGER.debug("CLIENT_ID={} :: TOPIC: {} :: current={}", clientId, packet.getTopic(),
+                current != null ? current.getName() : "null");
+        if (current != null) {
+            current.publish(clientId, packet);
+        }
+        if (hasMonitor) {
+            monitor.publish(clientId, packet);
+        }
+    }
 
-			// tell the webconsole the test has started
-			MQTTLog("Test started successfully: " + profile.name().toLowerCase() + " " + test);
+    public static class Utilities {
+        private final Monitor monitor;
+        private final HostApplication hostApps;
+        private final EdgeNode edgeNode;
 
-		} catch (java.lang.reflect.InvocationTargetException e) {
-			logger.error("Error starting test " + profile.name().toLowerCase() + "." + test);
-			if (e.getMessage() != null) {
-				logger.error(e.getMessage());
-			}
-			MQTTResults("OVERALL: NOT EXECUTED"); // Ensure the test ends
-		} catch (final Exception e) {
-			logger.error("Could not find or set test class " + profile.name().toLowerCase() + "." + test, e);
-		}
-	}
+        public Utilities(Monitor monitor, HostApplication hostApps, EdgeNode edgeNode) {
+            this.monitor = monitor;
+            this.hostApps = hostApps;
+            this.edgeNode = edgeNode;
+        }
 
-	public void endTest() {
-		endTest("");
-	}
+        public Monitor getMonitor() {
+            return monitor;
+        }
 
-	public void endTest(String info) {
-		if (current != null) {
-			logger.info("Test end requested for " + current.getName() + " " + info);
-			final TreeMap<String, String> testResults = new TreeMap<>();
+        public HostApplication getHostApps() {
+            return hostApps;
+        }
 
-			if (!hasMonitor) {
-				current.endTest(testResults);
-			} else {
-				testResults.putAll(monitor.getResults());
-				current.endTest(testResults);
-				monitor.endTest(null);
-			}
-			current = null;
-		} else {
-			logger.info("Test end requested but no test active");
-		}
-	}
-
-	public void onMqttConnectionStart(ConnectionStartInput connectionStartInput) {
-		if (current != null) {
-			current.onMqttConnectionStart(connectionStartInput);
-		}
-		if (hasMonitor) {
-			monitor.onMqttConnectionStart(connectionStartInput);
-		}
-	}
-
-	public void onAuthenticationSuccessful(AuthenticationSuccessfulInput authenticationSuccessfulInput) {
-		if (current != null) {
-			current.onAuthenticationSuccessful(authenticationSuccessfulInput);
-		}
-		if (hasMonitor) {
-			monitor.onAuthenticationSuccessful(authenticationSuccessfulInput);
-		}
-	}
-
-	public void onDisconnect(DisconnectEventInput disconnectEventInput) {
-		if (current != null) {
-			current.onDisconnect(disconnectEventInput);
-		}
-		if (hasMonitor) {
-			monitor.onDisconnect(disconnectEventInput);
-		}
-	}
-
-	public void connect(final @NotNull String clientId, final @NotNull ConnectPacket packet) {
-		if (current != null) {
-			current.connect(clientId, packet);
-		}
-		if (hasMonitor) {
-			monitor.connect(clientId, packet);
-		}
-	}
-
-	public void disconnect(final @NotNull String clientId, final @NotNull DisconnectPacket packet) {
-		if (current != null) {
-			current.disconnect(clientId, packet);
-		}
-		if (hasMonitor) {
-			monitor.disconnect(clientId, packet);
-		}
-	}
-
-	public void subscribe(final @NotNull String clientId, final @NotNull SubscribePacket packet) {
-		if (current != null) {
-			current.subscribe(clientId, packet);
-		}
-		if (hasMonitor) {
-			monitor.subscribe(clientId, packet);
-		}
-	}
-
-	public void publish(final @NotNull String clientId, final @NotNull PublishPacket packet) {
-		logger.debug("CLIENT_ID={} :: TOPIC: {} :: current={}", clientId, packet.getTopic(),
-				current != null ? current.getName() : "null");
-		if (current != null) {
-			current.publish(clientId, packet);
-		}
-		if (hasMonitor) {
-			monitor.publish(clientId, packet);
-		}
-	}
+        public EdgeNode getEdgeNode() {
+            return edgeNode;
+        }
+    }
 }

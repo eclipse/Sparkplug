@@ -161,7 +161,7 @@ import {cloneDeep, set, tap} from "lodash";
 
 let defaultLogFileName = "SparkplugTCKResults.log";
 let defaultUTCwindow = "60000";
-
+let defaultReportFileName = "Summary-"+defaultLogFileName+".html"
 export default {
     props: {
         /**
@@ -179,6 +179,7 @@ export default {
         return {
             filename: defaultLogFileName,
             UTCwindow: defaultUTCwindow,
+            report: defaultReportFileName,
             /**
              ** The MQTT Client used throughout the whole application.
              ** @type {MqttClient}
@@ -230,7 +231,8 @@ export default {
         this.connection.clientId = "tck-web-console-" + uuidv4();
         this.connection.keepalive = 60;
         this.filename = defaultLogFileName;
-        this.UTCwindow = defaultUTCwindow
+        this.UTCwindow = defaultUTCwindow;
+        this.report = defaultReportFileName;
     },
 
     /**
@@ -246,34 +248,39 @@ export default {
         if (this.UTCwindow === '') {
             this.UTCwindow = defaultUTCwindow
         }
+        this.report = "Summary-"+this.filename+".html";
         const {host, port, endpoint, ...options} = this.connection;
-
         console.log(this.connection);
 
         const connectUrl = `ws://${host}:${port}${endpoint}`;
         try {
             this.mqttClient = mqtt.connect(connectUrl, options);
-            this.$emit("on-connect", this.mqttClient, this.filename, this.UTCwindow);
+            this.$emit("on-connect", this.mqttClient, this.filename, this.UTCwindow, this.report);
             console.log(this.mqttClient);
-            console.log(this.filename);
+            console.log(this.filename, this.report);
         } catch (error) {
             this.failureCountDown = 5;
-            console.log("mqtt.connect error", error);
+            console.log("mqttConnect: error", error);
         }
 
         this.mqttClient.on("connect", () => {
             this.successCountDown = 5;
-            console.log("Connection succeeded!");
+            console.log("mqttConnect: Connection succeeded!");
         });
         this.mqttClient.on("offline", () => {
             console.log("Connection broken!");
         });
         this.mqttClient.on("error", (error) => {
             this.failureCountDown = 5;
-            console.log("Connection failed", error);
+            console.log("mqttConnect: Connection failed", error);
         });
+
         this.mqttClient.on("message", (topic, message) => {
-            console.log(`Received message ${message} from topic ${topic}`);
+            if (topic.endsWith("DOWNLOAD")) {
+                console.log(`mqttConnect: Got message at topic ${topic} payload size ${message.length}`);
+            } else {
+                console.log(`mqttConnect: Got message at topic ${topic} and message ${message}`);
+            }
         });
     },
 
