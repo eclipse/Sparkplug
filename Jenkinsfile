@@ -44,32 +44,34 @@ spec:
 
     stage('sign') {
       steps {
-        withCredentials([
-          [$class: 'FileBinding', credentialsId: 'secret-subkeys.asc', variable: 'KEYRING'],
-          [$class: 'StringBinding', credentialsId: 'gpg-passphrase', variable: 'KEYRING_PASSPHRASE']
-        ]) {
-          sh '''
-            curl -o tck/build/hivemq-extension/sparkplug-tck-3.0.1-SNAPSHOT-signed.jar -F file=@tck/build/hivemq-extension/sparkplug-tck-3.0.1-SNAPSHOT.jar https://cbi.eclipse.org/jarsigner/sign
-            export GPG_TTY=/dev/console
+        container('sparkplug-build') {
+          withCredentials([
+            [$class: 'FileBinding', credentialsId: 'secret-subkeys.asc', variable: 'KEYRING'],
+            [$class: 'StringBinding', credentialsId: 'gpg-passphrase', variable: 'KEYRING_PASSPHRASE']
+          ]) {
+            sh '''
+              curl -o tck/build/hivemq-extension/sparkplug-tck-3.0.1-SNAPSHOT-signed.jar -F file=@tck/build/hivemq-extension/sparkplug-tck-3.0.1-SNAPSHOT.jar https://cbi.eclipse.org/jarsigner/sign
+              export GPG_TTY=/dev/console
 
-            gpg --batch --import "${KEYRING}"
-            for fpr in $(gpg --list-keys --with-colons  | awk -F: \'/fpr:/ {print $10}\' | sort -u); do echo -e "5\ny\n" |  gpg --batch --command-fd 0 --expert --edit-key ${fpr} trust; done
+              gpg --batch --import "${KEYRING}"
+              for fpr in $(gpg --list-keys --with-colons  | awk -F: \'/fpr:/ {print $10}\' | sort -u); do echo -e "5\ny\n" |  gpg --batch --command-fd 0 --expert --edit-key ${fpr} trust; done
 
-            mkdir tck/build/hivemq-extension/working_tmp
-            cd tck/build/hivemq-extension/working_tmp
-            unzip ../sparkplug-tck-3.0.1-SNAPSHOT.zip
-            mv ../sparkplug-tck-3.0.1-SNAPSHOT-signed.jar sparkplug-tck/sparkplug-tck-3.0.1-SNAPSHOT.jar
-            zip -r ../sparkplug-tck-3.0.1-SNAPSHOT.zip sparkplug-tck
-            cd ..
-            gpg -v --no-tty --passphrase "${KEYRING_PASSPHRASE}" -c --batch sparkplug-tck-3.0.1-SNAPSHOT.zip
+              mkdir tck/build/hivemq-extension/working_tmp
+              cd tck/build/hivemq-extension/working_tmp
+              unzip ../sparkplug-tck-3.0.1-SNAPSHOT.zip
+              mv ../sparkplug-tck-3.0.1-SNAPSHOT-signed.jar sparkplug-tck/sparkplug-tck-3.0.1-SNAPSHOT.jar
+              zip -r ../sparkplug-tck-3.0.1-SNAPSHOT.zip sparkplug-tck
+              cd ..
+              gpg -v --no-tty --passphrase "${KEYRING_PASSPHRASE}" -c --batch sparkplug-tck-3.0.1-SNAPSHOT.zip
 
-            echo "no-tty" >> ~/.gnupg/gpg.conf
-            gpg -vvv --no-permission-warning --output "sparkplug-tck-3.0.1-SNAPSHOT.zip.sig" --batch --yes --pinentry-mode=loopback --passphrase="${KEYRING_PASSPHRASE}" --no-tty --detach-sig sparkplug-tck-3.0.1-SNAPSHOT.zip
-            cd ../../
-            ./package.sh
-            gpg -vvv --no-permission-warning --output "Eclipse-Sparkplug-TCK-3.0.1-SNAPSHOT.zip.sig" --batch --yes --pinentry-mode=loopback --passphrase="${KEYRING_PASSPHRASE}" --no-tty --detach-sig Eclipse-Sparkplug-TCK-3.0.1-SNAPSHOT.zip
-            gpg -vvv --verify Eclipse-Sparkplug-TCK-3.0.1-SNAPSHOT.zip.sig
-          '''
+              echo "no-tty" >> ~/.gnupg/gpg.conf
+              gpg -vvv --no-permission-warning --output "sparkplug-tck-3.0.1-SNAPSHOT.zip.sig" --batch --yes --pinentry-mode=loopback --passphrase="${KEYRING_PASSPHRASE}" --no-tty --detach-sig sparkplug-tck-3.0.1-SNAPSHOT.zip
+              cd ../../
+              ./package.sh
+              gpg -vvv --no-permission-warning --output "Eclipse-Sparkplug-TCK-3.0.1-SNAPSHOT.zip.sig" --batch --yes --pinentry-mode=loopback --passphrase="${KEYRING_PASSPHRASE}" --no-tty --detach-sig Eclipse-Sparkplug-TCK-3.0.1-SNAPSHOT.zip
+              gpg -vvv --verify Eclipse-Sparkplug-TCK-3.0.1-SNAPSHOT.zip.sig
+            '''
+          }
         }
       }
     }
