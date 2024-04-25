@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2021, 2022 Ian Craggs
+ * Copyright (c) 2021, 2024 Ian Craggs
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -47,6 +47,7 @@ import static org.eclipse.sparkplug.tck.test.common.Requirements.OPERATIONAL_BEH
 import static org.eclipse.sparkplug.tck.test.common.Requirements.OPERATIONAL_BEHAVIOR_EDGE_NODE_TERMINATION_HOST_OFFLINE_RECONNECT;
 import static org.eclipse.sparkplug.tck.test.common.Requirements.OPERATIONAL_BEHAVIOR_EDGE_NODE_TERMINATION_HOST_OFFLINE_TIMESTAMP;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -62,6 +63,7 @@ import org.eclipse.sparkplug.tck.test.TCK.Utilities;
 import org.eclipse.sparkplug.tck.test.TCKTest;
 import org.eclipse.sparkplug.tck.test.common.Constants;
 import org.eclipse.sparkplug.tck.test.common.Constants.TestStatus;
+import org.eclipse.sparkplug.tck.test.common.SparkplugBProto;
 import org.eclipse.sparkplug.tck.test.common.Utils;
 import org.jboss.test.audit.annotations.SpecAssertion;
 import org.jboss.test.audit.annotations.SpecVersion;
@@ -83,6 +85,7 @@ public class PrimaryHostTest extends TCKTest {
 
 	private static final @NotNull Logger logger = LoggerFactory.getLogger("Sparkplug");
 	public static final String PROPERTY_KEY_QUALITY = "Quality";
+	private static final String BD_SEQ = "bdSeq";
 
 	public static final @NotNull List<String> testIds = List.of(ID_MESSAGE_FLOW_EDGE_NODE_BIRTH_PUBLISH_PHID_WAIT,
 			ID_MESSAGE_FLOW_EDGE_NODE_BIRTH_PUBLISH_PHID_WAIT_ID,
@@ -101,6 +104,7 @@ public class PrimaryHostTest extends TCKTest {
 	private @NotNull String edgeNodeId;
 	private @NotNull String hostApplicationId;
 	private @NotNull long seqUnassigned = -1;
+	private @NotNull long birthSeq = -1; // record the nbirth seq to check for matching ndeath
 	private Utilities utilities = null;
 
 	private TestStatus state = TestStatus.NONE;
@@ -350,6 +354,18 @@ public class PrimaryHostTest extends TCKTest {
 		// TODO Auto-generated method stub
 	}
 
+	private long getBdSeq(final ByteBuffer payload) {
+		final SparkplugBProto.PayloadOrBuilder inboundPayload = Utils.decode(payload);
+		if (inboundPayload != null) {
+			for (SparkplugBProto.Payload.Metric m : inboundPayload.getMetricsList()) {
+				if (m.getName().equals(BD_SEQ)) {
+					return m.getLongValue();
+				}
+			}
+		}
+		return -1L;
+	}
+
 	@SpecAssertion(
 			section = Sections.OPERATIONAL_BEHAVIOR_EDGE_NODE_SESSION_ESTABLISHMENT,
 			id = ID_MESSAGE_FLOW_EDGE_NODE_BIRTH_PUBLISH_PHID_WAIT)
@@ -387,6 +403,10 @@ public class PrimaryHostTest extends TCKTest {
 
 		if (topic.equals(Constants.TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + Constants.TOPIC_PATH_NBIRTH + "/"
 				+ edgeNodeId)) {
+
+			ByteBuffer payload = packet.getPayload().orElseGet(null);
+			birthSeq = getBdSeq(payload);
+
 			// found the edge NBIRTH
 			if (state == TestStatus.WRONG_HOST_ONLINE) {
 				// received NBIRTH for wrong host
@@ -466,20 +486,25 @@ public class PrimaryHostTest extends TCKTest {
 			}
 		} else if (topic.equals(Constants.TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + Constants.TOPIC_PATH_NDEATH + "/"
 				+ edgeNodeId)) {
+			ByteBuffer payload = packet.getPayload().orElseGet(null);
+			long deathSeq = getBdSeq(payload);
 
-			logger.info("Received NDEATH in state " + state.name());
-			Utils.setResultIfNotFail(testResults, state == TestStatus.EXPECT_DEATHS || state == TestStatus.HOST_OFFLINE,
-					ID_OPERATIONAL_BEHAVIOR_EDGE_NODE_TERMINATION_HOST_OFFLINE,
-					OPERATIONAL_BEHAVIOR_EDGE_NODE_TERMINATION_HOST_OFFLINE);
+			logger.info("Received NDEATH in state " + state.name() + " with bdseq " + deathSeq + " (birthSeq " + birthSeq + ")");
 
-			Utils.setResultIfNotFail(testResults, state == TestStatus.EXPECT_DEATHS || state == TestStatus.HOST_OFFLINE,
-					ID_MESSAGE_FLOW_EDGE_NODE_BIRTH_PUBLISH_PHID_OFFLINE,
-					MESSAGE_FLOW_EDGE_NODE_BIRTH_PUBLISH_PHID_OFFLINE);
+			if (deathSeq == birthSeq) { // ignore ndeaths from different births
+				Utils.setResultIfNotFail(testResults, state == TestStatus.EXPECT_DEATHS || state == TestStatus.HOST_OFFLINE,
+						ID_OPERATIONAL_BEHAVIOR_EDGE_NODE_TERMINATION_HOST_OFFLINE,
+						OPERATIONAL_BEHAVIOR_EDGE_NODE_TERMINATION_HOST_OFFLINE);
 
-			if (state == TestStatus.DONT_EXPECT_DEATHS) {
-				Utils.setResult(testResults, false,
-						ID_OPERATIONAL_BEHAVIOR_EDGE_NODE_TERMINATION_HOST_OFFLINE_TIMESTAMP,
-						OPERATIONAL_BEHAVIOR_EDGE_NODE_TERMINATION_HOST_OFFLINE_TIMESTAMP);
+				Utils.setResultIfNotFail(testResults, state == TestStatus.EXPECT_DEATHS || state == TestStatus.HOST_OFFLINE,
+						ID_MESSAGE_FLOW_EDGE_NODE_BIRTH_PUBLISH_PHID_OFFLINE,
+						MESSAGE_FLOW_EDGE_NODE_BIRTH_PUBLISH_PHID_OFFLINE);
+
+				if (state == TestStatus.DONT_EXPECT_DEATHS) {
+					Utils.setResult(testResults, false,
+							ID_OPERATIONAL_BEHAVIOR_EDGE_NODE_TERMINATION_HOST_OFFLINE_TIMESTAMP,
+							OPERATIONAL_BEHAVIOR_EDGE_NODE_TERMINATION_HOST_OFFLINE_TIMESTAMP);
+				}
 			}
 
 		} else if (topic.equals(Constants.TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + Constants.TOPIC_PATH_DDEATH + "/"
