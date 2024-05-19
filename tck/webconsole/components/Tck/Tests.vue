@@ -1,5 +1,5 @@
 <!--****************************************************************************
- * Copyright (c) 2021, 2022 Lukas Brand, Ian Craggs
+ * Copyright (c) 2021, 2024 Lukas Brand, Ian Craggs
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -245,7 +245,7 @@ export default {
                         testType: "HOSTAPPLICATION",
                         name: "SessionTerminationTest",
                         readableName: "Session Termination Test",
-                        description: `This is the Sparkplug Host Application session termination test. There are 
+                        description: `This is the Sparkplug Host Application session termination test. There are
                         two ways of running it. Either set the MQTT Client id of an already connected Host Application,
                         or connect the Host Application while the test is running. This tests a deliberate disconnection
                         preceded by the sending of a STATE message, not abnormal termination firing a will message.`,
@@ -278,7 +278,7 @@ export default {
                             `To check that a command from a Host Application under test is correct to
                             both an Edge Node (NCMD) and a Device (DCMD). You will be asked to send a
                             rebirth and a metric value update command to an Edge Node and a Device in
-                            sequence. If you don't connect the Edge Node before the test runs, a 
+                            sequence. If you don't connect the Edge Node before the test runs, a
                             simulated Edge Node will be used.`,
                         requirements: [
                             "Connect this console to the HiveMQ broker.",
@@ -459,20 +459,21 @@ export default {
                         name: "SessionEstablishmentTest",
                         readableName: "Session Establishment Test",
                         description: `This test checks that Edge Nodes and Devices can connect correctly to the MQTT broker.
-                        It can be run in two ways, with a real Host Application or simulated. To use a real Host Application, 
-                        ensure it is active before the test is started.`,
+                        It can be run with either a real or simulated Host Application. To use a real Host Application,
+                        ensure the Host Application is online before the test is started.
+                        Devices are optional, but you must enter their Sparkplug IDs for them to be tested.`,
                         requirements: [
                             "Connect this console to the HiveMQ broker.",
-                            "Set the Host App, Group, Edge Node and Device ids.",
+                            "Set the Host App, Group, Edge Node and optionally Device ids.",
                             "Ensure the Host App is started, if you are using a real one.",
                             "Start this test.",
-                            "Connect the Edge Node and Device.",
+                            "Connect the Edge Node (and Devices).",
                             "Wait until the test is finished and check the results.",
                             "If the test does not stop automatically, press the \"Stop Test\" button."
                         ],
                         parameters: {
                             device_ids: {
-                                parameterReadableName: "Device Ids",
+                                parameterReadableName: "Device Ids (optional)",
                                 parameterValue: "",
                                 parameterDescription: "The space separated list of Ids of devices connected to the edge node.",
                             },
@@ -489,20 +490,21 @@ export default {
                         description: `This is the Sparkplug Edge Node session termination test.
                         It tests deliberate session termination, where NDEATH and DDEATH
                         packets are sent before disconnecting. A simulated Host Application will
-                        be used if the named one is not already connected. `,
+                        be used if the named one is not already connected.
+                        Devices are optional, but you must enter their Sparkplug IDs for them to be tested.`,
                         requirements: [
                             "Connect this console to the HiveMQ broker.",
-                            "Set the Device Id that is used by the configured Host, Group and Edge.",
+                            "Set a Device Id if used by the configured Host, Group and Edge.",
                             "Connect the Host Application to the broker, if you are using one.",
                             "Start this test.",
-                            "Connect the Edge Node and Device.",
-                            "Stop the edge node and device named.",
+                            "Connect the Edge Node (and Device).",
+                            "Stop the edge node (and device) named.",
                             "Wait until the test is finished and check the results.",
                             "If the test does not stop automatically, press the \"Stop Test\" button."
                         ],
                         parameters: {
                             device_ids: {
-                                parameterReadableName: "Device Ids",
+                                parameterReadableName: "Device Ids (optional)",
                                 parameterValue: "",
                                 parameterDescription: "The space separated list of Ids of devices connected to the edge node.",
                             },
@@ -517,12 +519,12 @@ export default {
                         name: "SendDataTest",
                         readableName: "Send Data Test",
                         description: `This is the Edge Node Sparkplug send data test.
-                            It determines the MQTT client ID of the Edge Node from the MQTT connect,
-                            so you must connect the Edge Node after the test has started.
-                        `,
+                        It determines the MQTT client ID of the Edge Node from the MQTT connect,
+                        so you must connect the Edge Node after the test has started.
+                        A device is optional, but you must enter its Sparkplug ID for it to be tested.`,
                         requirements: [
                             "Connect this console to the HiveMQ broker.",
-                            "Set Device Id that is used by the configured Group and Edge.",
+                            "Set Device Id if used by the configured Group and Edge.",
                             "Ensure the Edge Node is not connected to the broker.",
                             "Start this test.",
                             "Connect the Edge Node and send data from the Edge Node and Device.",
@@ -531,7 +533,7 @@ export default {
                         ],
                         parameters: {
                             device_id: {
-                                parameterReadableName: "Device Id",
+                                parameterReadableName: "Device Id (optional)",
                                 parameterValue: "",
                                 parameterDescription: "The Id of a device connected to the edge node",
                             },
@@ -549,19 +551,19 @@ export default {
                         data types: DataSets, Templates and Custom Properties. It determines the MQTT client
                         ID of the Edge Node from the MQTT connect, so you must connect the Edge Node after
                         the test has started.
-                        `,
+                        A device is optional, but you must enter its Sparkplug ID for it to be tested.`,
                         requirements: [
                             "Connect this console to the HiveMQ broker.",
-                            "Set Device Id that is used by the configured Group and Edge.",
+                            "Set Device Id if used by the configured Group and Edge.",
                             "Ensure the Edge Node is not connected to the broker.",
                             "Start this test.",
-                            "Connect the Edge Node and send data from the Edge Node and Device.",
+                            "Connect the Edge Node and send data from the Edge Node (and Device).",
                             "Wait until the test is finished and check the results.",
                             "If the test does not stop automatically, press the \"Stop Test\" button."
                         ],
                         parameters: {
                             device_id: {
-                                parameterReadableName: "Device Id",
+                                parameterReadableName: "Device Id (optional)",
                                 parameterValue: "",
                                 parameterDescription: "The Id of a device connected to the edge node",
                             },
@@ -577,11 +579,12 @@ export default {
                         readableName: "Receive Command Test",
                         description: `This is the Edge Node Sparkplug receive command test. A rebirth
                                       command will be sent to the Edge Node, and the proper rebirth
-                                      sequence checked. Do not connect the Host Application and 
-                                      start the Edge node only once the test has been started.`,
+                                      sequence checked. Do not connect the Host Application and
+                                      start the Edge node only once the test has been started.
+                                      A device is optional, but you must enter its Sparkplug ID for it to be tested.`,
                         requirements: [
                             "Connect this console to the HiveMQ broker.",
-                            "Set Device Id that is used by the configured Group and Edge.",
+                            "Set Device Id if used by the configured Group and Edge.",
                             "Ensure the Host Application and Edge Node are not connected.",
                             "Start this test.",
                             "Start the Edge Node.",
@@ -591,7 +594,7 @@ export default {
                         ],
                         parameters: {
                             device_id: {
-                                parameterReadableName: "Device Id",
+                                parameterReadableName: "Device Id (optional)",
                                 parameterValue: "",
                                 parameterDescription: "The Id of a device connected to the edge node",
                             },
@@ -609,10 +612,11 @@ export default {
                                       Application behaves correctly. The test contains delays so can take 30 seconds
                                       or more to run.
                                       This test uses a simulated Host Application, so no Host Application should be
-                                      connected to the broker as this will confuse the test.`,
+                                      connected to the broker as this will confuse the test.
+                                      A device is optional, but you must enter its Sparkplug ID for it to be tested.`,
                         requirements: [
                             "Connect this console to the HiveMQ broker.",
-                            "Set Device Id that is used by the configured Group and Edge.",
+                            "Set Device Id if used by the configured Group and Edge.",
                             "Ensure no Host Application is connected to the HiveMQ broker.",
                             "Start the edge node to test.",
                             "Start this test.",
@@ -621,7 +625,7 @@ export default {
                         ],
                         parameters: {
                             device_id: {
-                                parameterReadableName: "Device Id",
+                                parameterReadableName: "Device Id (optional)",
                                 parameterValue: "",
                                 parameterDescription: "The Id of a device connected to the edge node",
                             },
@@ -630,20 +634,21 @@ export default {
                         logging: [],
                     },
                 },
-                multpleBrokerTest: {
+                multipleBrokerTest: {
                     testValues: {
                         testType: "EONNODE",
                         name: "MultipleBrokerTest",
                         readableName: "Multiple MQTT Server (Broker) Test",
-                        description: `This is the Sparkplug Edge Node test. It checks that an Edge Node behaves 
+                        description: `This is the Sparkplug Edge Node test. It checks that an Edge Node behaves
                                       correctly when multiple Brokers are present. The Edge Node can be started
                                       before the test, or the test before the Edge Node, as long as no Host Application
-                                      is online. A simulated Host Application will be used.`,
+                                      is online. A simulated Host Application will be used.
+                                      A device is optional, but you must enter its Sparkplug ID for it to be tested.`,
                         requirements: [
                             "Connect this console to the HiveMQ broker.",
                             "Start a second MQTT broker listening on a different port.",
                             "Ensure no Host Application is connected to either broker.",
-                            "Set Device Id that is used by the configured Group and Edge.",
+                            "Set Device Id if used by the configured Group and Edge.",
                             "Set the broker URI of the second broker.",
                             "Start the Edge Node implementation to test.",
                             "Start this test.",
@@ -652,7 +657,7 @@ export default {
                         ],
                         parameters: {
                             device_id: {
-                                parameterReadableName: "Device Id",
+                                parameterReadableName: "Device Id (optional)",
                                 parameterValue: "",
                                 parameterDescription: "The Id of a device connected to the edge node",
                             },

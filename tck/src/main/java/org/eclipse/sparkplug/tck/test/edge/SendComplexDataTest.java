@@ -164,10 +164,10 @@ public class SendComplexDataTest extends TCKTest {
 	private final @NotNull TCK theTCK;
 	private @NotNull Utilities utilities = null;
 
-	private @NotNull String deviceId;
-	private @NotNull String groupId;
-	private @NotNull String edgeNodeId;
-	private @NotNull String hostApplicationId;
+	private @NotNull String deviceId = null;
+	private @NotNull String groupId = null;
+	private @NotNull String edgeNodeId = null;
+	private @NotNull String hostApplicationId = null;
 	private @NotNull long seqUnassigned = -1;
 
 	// Host Application variables
@@ -179,15 +179,17 @@ public class SendComplexDataTest extends TCKTest {
 		theTCK = aTCK;
 		this.utilities = utilities;
 
-		if (parms.length < 4) {
+		if (parms.length < 3) {
 			log("Not enough parameters: " + Arrays.toString(parms));
-			log(getName() + " Parameters must be: hostId groupId edgeNodeId deviceId");
+			log(getName() + " Parameters must be: hostId groupId edgeNodeId {deviceId}");
 			throw new IllegalArgumentException();
 		}
 		hostApplicationId = parms[0];
 		groupId = parms[1];
 		edgeNodeId = parms[2];
-		deviceId = parms[3];
+		if (parms.length == 4) {
+			deviceId = parms[3];
+		}
 		logger.info("Parameters are HostId: {}, GroupId: {}, EdgeNodeId: {}, DeviceId: {}", hostApplicationId, groupId,
 				edgeNodeId, deviceId);
 
@@ -271,10 +273,26 @@ public class SendComplexDataTest extends TCKTest {
 			logger.error("Skip Edge payload validation - no sparkplug payload.");
 			return;
 		}
-		boolean isDataTopic =
-				isSparkplugTopic && (topic.contains(TOPIC_PATH_DDATA) || topic.contains(TOPIC_PATH_NDATA));
-		boolean isCommandTopic =
-				isSparkplugTopic && (topic.contains(TOPIC_PATH_NCMD) || topic.contains(TOPIC_PATH_DCMD));
+
+		String cmd = "";
+		String[] levels = topic.split("/");
+		if (levels.length >= 3) {
+			cmd = levels[2];
+			logger.info("Looking for {}", cmd);
+		} else {
+			return;
+		}
+		if (!levels[1].equals(groupId) || !levels[3].equals(edgeNodeId)) {
+			logger.error("GroupId {} or edgeNodeId {} not matched.", groupId, edgeNodeId);
+			return;
+		}
+		// ignore device messages if we don't have a deviceId
+		boolean isDataTopic = (deviceId != null && cmd.equals(TOPIC_PATH_DDATA)) || cmd.equals(TOPIC_PATH_NDATA);
+		boolean isCommandTopic = (deviceId != null && cmd.equals(TOPIC_PATH_DCMD)) || cmd.equals(TOPIC_PATH_NCMD);
+		if (deviceId != null && levels.length >= 5 && !levels[4].equals(deviceId)) {
+			logger.error("deviceId not matched.");
+			return;
+		}
 
 		checkPropertiesValidType(packet, topic);
 		checkSequenceNumberIncluded(packet, topic);
@@ -300,31 +318,27 @@ public class SendComplexDataTest extends TCKTest {
 	}
 
 	private void checkDataTopicPayload(final @NotNull String clientId, final @NotNull PublishPacket packet,
-			final @NotNull String topic) {
-		if (clientId.contentEquals(deviceId) || topic.contains(groupId) && topic.contains(edgeNodeId)) {
-			final PayloadOrBuilder sparkplugPayload = Utils.getSparkplugPayload(packet);
-			if (sparkplugPayload != null) {
-				checkPayloadsNameRequirement(sparkplugPayload);
-				checkAliasInData(sparkplugPayload, topic);
-				checkMetricsDataTypeNotRec(sparkplugPayload, topic);
-				checkPayloadsNameInDataRequirement(sparkplugPayload);
-			} else {
-				logger.error("Skip Edge payload validation - no sparkplug payload.");
-			}
+		final @NotNull String topic) {
+		final PayloadOrBuilder sparkplugPayload = Utils.getSparkplugPayload(packet);
+		if (sparkplugPayload != null) {
+			checkPayloadsNameRequirement(sparkplugPayload);
+			checkAliasInData(sparkplugPayload, topic);
+			checkMetricsDataTypeNotRec(sparkplugPayload, topic);
+			checkPayloadsNameInDataRequirement(sparkplugPayload);
+		} else {
+			logger.error("Skip Edge payload validation - no sparkplug payload.");
 		}
 	}
 
 	private void checkCommandTopicPayload(final @NotNull String clientId, final @NotNull PublishPacket packet,
-			final @NotNull String topic) {
-		if (clientId.contentEquals(deviceId) || topic.contains(groupId) && topic.contains(edgeNodeId)) {
-			final PayloadOrBuilder sparkplugPayload = Utils.getSparkplugPayload(packet);
-			if (sparkplugPayload != null) {
-				checkAliasInData(sparkplugPayload, topic);
-				checkMetricsDataTypeNotRec(sparkplugPayload, topic);
-				checkPayloadsNameRequirement(sparkplugPayload);
-			} else {
-				logger.error("Skip Edge payload validation - no sparkplug payload.");
-			}
+		final @NotNull String topic) {
+		final PayloadOrBuilder sparkplugPayload = Utils.getSparkplugPayload(packet);
+		if (sparkplugPayload != null) {
+			checkAliasInData(sparkplugPayload, topic);
+			checkMetricsDataTypeNotRec(sparkplugPayload, topic);
+			checkPayloadsNameRequirement(sparkplugPayload);
+		} else {
+			logger.error("Skip Edge payload validation - no sparkplug payload.");
 		}
 	}
 
@@ -381,6 +395,7 @@ public class SendComplexDataTest extends TCKTest {
 				if(!Utils.hasValidDatatype(m)){
 					isValid_DataType = false;
 					isValid_DataTypeValue = false;
+					logger.error("Metric error {}", m);
 					break;
 				}
 			}

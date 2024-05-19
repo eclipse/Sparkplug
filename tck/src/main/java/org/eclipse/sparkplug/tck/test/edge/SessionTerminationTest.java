@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022, 2023 Ian Craggs
+ * Copyright (c) 2022, 2024 Ian Craggs
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -107,7 +107,7 @@ public class SessionTerminationTest extends TCKTest {
 	private @NotNull String hostApplicationId;
 	private @NotNull String groupId;
 	private @NotNull String edgeNodeId;
-	private @NotNull String deviceId;
+	private @NotNull String deviceId = null;
 
 	private @NotNull boolean ndeathFound = false;
 	private @NotNull boolean ddeathFound = false;
@@ -121,16 +121,18 @@ public class SessionTerminationTest extends TCKTest {
 		theTCK = aTCK;
 		this.utilities = utilities;
 
-		if (parms.length < 4) {
+		if (parms.length < 3) {
 			log("Not enough parameters: " + Arrays.toString(parms));
-			log("Parameters to edge session termination test must be: hostApplicationId groupId edgeNodeId deviceId");
+			log("Parameters to edge session termination test must be: hostApplicationId groupId edgeNodeId {deviceId}");
 			throw new IllegalArgumentException();
 		}
 
 		hostApplicationId = parms[0];
 		groupId = parms[1];
 		edgeNodeId = parms[2];
-		deviceId = parms[3];
+		if (parms.length == 4) {
+			deviceId = parms[3];
+		}
 
 		logger.info("Host application id: {}, Group id: {}, Edge node id: {}, Device id: {}", hostApplicationId,
 				groupId, edgeNodeId, deviceId);
@@ -256,6 +258,7 @@ public class SessionTerminationTest extends TCKTest {
 		if (disconnected && ndeathFound) {
 			theTCK.endTest();
 		}
+		logger.info("Disconnected: {}, ndeathFound: {}", disconnected, ndeathFound);
 	}
 
 	@Override
@@ -305,7 +308,7 @@ public class SessionTerminationTest extends TCKTest {
 		logger.info("Edge session termination test - publish - to topic: {} ", packet.getTopic());
 
 		if (testClientId == null || !clientId.equals(testClientId)) {
-			// ignore disconnect packets from other clients
+			// ignore packets from other clients
 			return;
 		}
 
@@ -363,8 +366,11 @@ public class SessionTerminationTest extends TCKTest {
 			testResults.put(ID_PAYLOADS_DDEATH_SEQ_NUMBER, setResult(payload.hasSeq(), PAYLOADS_DDEATH_SEQ_NUMBER));
 		}
 
-		if (disconnected && ndeathFound && ddeathFound) {
+		// if there is no device id, don't wait for a NDEATH
+		if (disconnected && ndeathFound && (deviceId == null || ddeathFound)) {
 			theTCK.endTest();
 		}
+		logger.info("Disconnected: {}, ndeathFound: {}, deviceId: {}, ddeathFound: {}", disconnected,
+				ndeathFound, deviceId, ddeathFound);
 	}
 }

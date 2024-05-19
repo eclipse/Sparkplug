@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2021, 2023 Ian Craggs
+ * Copyright (c) 2021, 2024 Ian Craggs
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -105,13 +105,13 @@ public class ReceiveCommandTest extends TCKTest {
 			ID_OPERATIONAL_BEHAVIOR_DATA_COMMANDS_REBIRTH_ACTION_2,
 			ID_OPERATIONAL_BEHAVIOR_DATA_COMMANDS_REBIRTH_ACTION_3, ID_PAYLOADS_NDEATH_WILL_MESSAGE);
 
-	private @NotNull TestStatus state;
-	private @NotNull String deviceId;
-	private @NotNull String groupId;
-	private @NotNull String edgeNodeId;
-	private @NotNull String hostApplicationId;
+	private @NotNull TestStatus state = null;
+	private @NotNull String deviceId = null;
+	private @NotNull String groupId = null;
+	private @NotNull String edgeNodeId = null;
+	private @NotNull String hostApplicationId = null;
 	private @NotNull long deathBdSeq = -1;
-	private String edgeNodeClientId;
+	private String edgeNodeClientId = null;
 	private boolean bNBirth = false, bDBirth = false;
 	private PublishService publishService = Services.publishService();
 	private final ManagedExtensionExecutorService executorService = Services.extensionExecutorService();
@@ -124,9 +124,9 @@ public class ReceiveCommandTest extends TCKTest {
 		theTCK = aTCK;
 		this.utilities = utilities;
 
-		if (params.length < 4) {
+		if (params.length < 3) {
 			log("Not enough parameters: " + Arrays.toString(params));
-			log("Parameters to edge receive command test must be: hostApplicationId groupId edgeNodeId deviceId");
+			log("Parameters to edge receive command test must be: hostApplicationId groupId edgeNodeId {deviceId}");
 			throw new IllegalArgumentException();
 		}
 		state = TestStatus.NONE;
@@ -134,7 +134,9 @@ public class ReceiveCommandTest extends TCKTest {
 		hostApplicationId = params[0];
 		groupId = params[1];
 		edgeNodeId = params[2];
-		deviceId = params[3];
+		if (params.length == 4) {
+			deviceId = params[3];
+		}
 		logger.info("Host application id: {}, Group id: {}, Edge node id: {}, Device id: {}", hostApplicationId,
 				groupId, edgeNodeId, deviceId);
 
@@ -314,8 +316,13 @@ public class ReceiveCommandTest extends TCKTest {
 
 		if (state == TestStatus.EXPECT_NODE_BIRTH
 				&& topic.equals(TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + TOPIC_PATH_NBIRTH + "/" + edgeNodeId)) {
-			log("Edge " + edgeNodeId + " is now online");
-			state = TestStatus.EXPECT_DEVICE_BIRTH;
+			if (deviceId == null) {
+				log("Edge " + edgeNodeId + " is now online, sending rebirth");
+				sendRebirth(true);
+			} else {
+				log("Edge " + edgeNodeId + " is now online");
+				state = TestStatus.EXPECT_DEVICE_BIRTH;
+			}
 		} else if (state == TestStatus.EXPECT_DEVICE_BIRTH && topic.equals(
 				TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + TOPIC_PATH_DBIRTH + "/" + edgeNodeId + "/" + deviceId)) {
 			log("Device " + deviceId + " is now online, sending rebirth");
@@ -343,7 +350,7 @@ public class ReceiveCommandTest extends TCKTest {
 									deathBdSeq, birthSeq);
 						}
 					}
-				} else if (levels.length == 5 && levels[2].equals(TOPIC_PATH_DBIRTH)) {
+				} else if (levels.length == 5 && levels[2].equals(TOPIC_PATH_DBIRTH) && levels[4].equals(deviceId)) {
 					log("Device birth received for device: " + levels[4]);
 					bDBirth = true;
 
@@ -363,7 +370,7 @@ public class ReceiveCommandTest extends TCKTest {
 							setResult(false, OPERATIONAL_BEHAVIOR_DATA_COMMANDS_REBIRTH_ACTION_1));
 				}
 
-				if (bNBirth && bDBirth && state == TestStatus.SENDING_NODE_REBIRTH) {
+				if (bNBirth && (deviceId == null || bDBirth) && state == TestStatus.SENDING_NODE_REBIRTH) {
 					logger.debug(
 							"Check Req: {} After an Edge Node stops sending DATA messages, it MUST send a complete BIRTH sequence including the NBIRTH and DBIRTH(s) if applicable.",
 							ID_OPERATIONAL_BEHAVIOR_DATA_COMMANDS_REBIRTH_ACTION_2);
