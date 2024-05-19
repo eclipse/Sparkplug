@@ -172,15 +172,17 @@ public class SendDataTest extends TCKTest {
 		this.utilities = utilities;
 		this.config = config;
 
-		if (params.length < 3) {
+		if (params.length < 2) {
 			log("Not enough parameters: " + Arrays.toString(params));
-			log("Parameters to send data test must be: groupId edgeNodeId deviceId");
+			log("Parameters to send data test must be: hostApplicationId groupId edgeNodeId {deviceId}");
 			throw new IllegalArgumentException();
 		}
 		hostApplicationId = params[0];
 		groupId = params[1];
 		edgeNodeId = params[2];
-		deviceId = params[3];
+		if (params.length == 4) {
+			deviceId = params[3];
+		}
 		logger.info("Parameters are Host application ID: {}, GroupId: {}, EdgeNodeId: {}, DeviceId: {}",
 				hostApplicationId, groupId, edgeNodeId, deviceId);
 
@@ -285,7 +287,7 @@ public class SendDataTest extends TCKTest {
 			checkDDATA(clientId, packet);
 		}
 
-		if (isEdgeNodeChecked && isDeviceChecked) {
+		if (isEdgeNodeChecked && (deviceId == null || isDeviceChecked)) {
 			theTCK.endTest();
 		}
 	}
