@@ -99,10 +99,10 @@ public class PrimaryHostTest extends TCKTest {
 	private final @NotNull TCK theTCK;
 	private final ManagedExtensionExecutorService executorService = Services.extensionExecutorService();
 
-	private @NotNull String deviceId;
-	private @NotNull String groupId;
-	private @NotNull String edgeNodeId;
-	private @NotNull String hostApplicationId;
+	private @NotNull String deviceId = null;
+	private @NotNull String groupId = null;
+	private @NotNull String edgeNodeId = null;
+	private @NotNull String hostApplicationId = null;
 	private @NotNull long seqUnassigned = -1;
 	private @NotNull long birthSeq = -1; // record the nbirth seq to check for matching ndeath
 	private Utilities utilities = null;
@@ -110,19 +110,21 @@ public class PrimaryHostTest extends TCKTest {
 	private TestStatus state = TestStatus.NONE;
 
 	public PrimaryHostTest(TCK aTCK, Utilities utilities, String[] parms, Results.Config config) {
-		logger.info("Edge Node payload validation test. Parameters: {} ", Arrays.asList(parms));
+		logger.info("Edge Node Primary Host test. Parameters: {} ", Arrays.asList(parms));
 		theTCK = aTCK;
 		this.utilities = utilities;
 
-		if (parms.length < 4) {
+		if (parms.length < 3) {
 			log("Not enough parameters: " + Arrays.toString(parms));
-			log("Parameters to edge primary host test must be: hostId groupId edgeNodeId deviceId");
+			log("Parameters to edge primary host test must be: hostId groupId edgeNodeId {deviceId}");
 			throw new IllegalArgumentException();
 		}
 		hostApplicationId = parms[0];
 		groupId = parms[1];
 		edgeNodeId = parms[2];
-		deviceId = parms[3];
+		if (parms.length == 4) {
+			deviceId = parms[3];
+		}
 		logger.info("Parameters are HostId: {}, GroupId: {}, EdgeNodeId: {}, DeviceId: {}", hostApplicationId, groupId,
 				edgeNodeId, deviceId);
 

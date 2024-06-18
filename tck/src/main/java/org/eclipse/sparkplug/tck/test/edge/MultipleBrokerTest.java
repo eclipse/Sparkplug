@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2021, 2023 Ian Craggs
+ * Copyright (c) 2021, 2024 Ian Craggs
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -84,11 +84,11 @@ public class MultipleBrokerTest extends TCKTest {
 					ID_OPERATIONAL_BEHAVIOR_PRIMARY_APPLICATION_STATE_WITH_MULTIPLE_SERVERS_WALK,
 					ID_OPERATIONAL_BEHAVIOR_EDGE_NODE_BIRTH_SEQUENCE_WAIT);
 
-	private @NotNull String deviceId;
-	private @NotNull String groupId;
-	private @NotNull String edgeNodeId;
-	private @NotNull String hostApplicationId;
-	private @NotNull String brokerURL;
+	private @NotNull String deviceId = null;
+	private @NotNull String groupId = null;
+	private @NotNull String edgeNodeId = null;
+	private @NotNull String hostApplicationId = null;
+	private @NotNull String brokerURL = null;
 
 	private HostApplication broker2 = new HostApplication("tcp://localhost:1884");
 
@@ -111,16 +111,20 @@ public class MultipleBrokerTest extends TCKTest {
 		// a portion of the bdSeq numbers
 		utilities.getMonitor().setIgnoreBdSeqNumCheck(true);
 
-		if (parms.length < 5) {
+		if (parms.length < 4) {
 			log("Not enough parameters: " + Arrays.toString(parms));
-			log("Parameters to edge multiple broker test must be: hostApplicationId, groupId edgeNodeId deviceId brokerURL");
+			log("Parameters to edge multiple broker test must be: hostApplicationId, groupId edgeNodeId {deviceId} brokerURL");
 			throw new IllegalArgumentException();
 		}
 		hostApplicationId = parms[0];
 		groupId = parms[1];
 		edgeNodeId = parms[2];
-		deviceId = parms[3];
-		brokerURL = parms[4];
+		if (parms.length == 4) {
+			brokerURL = parms[3];
+		} else {
+			deviceId = parms[3];
+			brokerURL = parms[4];
+		}
 		logger.info("Parameters are HostApplicationId: {}, GroupId: {}, EdgeNodeId: {}, DeviceId: {} BrokerURL: {}",
 				hostApplicationId, groupId, edgeNodeId, deviceId, brokerURL);
 
@@ -358,9 +362,30 @@ public class MultipleBrokerTest extends TCKTest {
 				Utils.setResultIfNotFail(testResults, true, ID_OPERATIONAL_BEHAVIOR_EDGE_NODE_BIRTH_SEQUENCE_WAIT,
 						OPERATIONAL_BEHAVIOR_EDGE_NODE_BIRTH_SEQUENCE_WAIT);
 
+				if (deviceId == null) {
+					// we've received NBIRTH, and not expecting DBIRTH, so set the second host online
+					executorService.schedule(new Runnable() {
+						@Override
+						public void run() {
+							setHost2Online();
+						}
+					}, 1, TimeUnit.SECONDS);
+				}
+
 			} else if (state == TestStatus.EXPECT_DEATHS_AND_BIRTHS && births_on == 1) {
 				Utils.setResultIfNotFail(testResults, true, ID_OPERATIONAL_BEHAVIOR_EDGE_NODE_BIRTH_SEQUENCE_WAIT,
 						OPERATIONAL_BEHAVIOR_EDGE_NODE_BIRTH_SEQUENCE_WAIT);
+
+				if (deviceId == null) { // there's not going to be a DBIRTH
+					// the edge node has reconnected to server 1 so that's the end of the test
+					state = TestStatus.ENDING;
+					executorService.schedule(new Runnable() {
+						@Override
+						public void run() {
+							theTCK.endTest();
+						}
+					}, 1, TimeUnit.SECONDS);
+				}
 
 			} else {
 				// any other state is wrong
@@ -373,7 +398,7 @@ public class MultipleBrokerTest extends TCKTest {
 				Utils.setResult(testResults, false, ID_OPERATIONAL_BEHAVIOR_EDGE_NODE_BIRTH_SEQUENCE_WAIT,
 						OPERATIONAL_BEHAVIOR_EDGE_NODE_BIRTH_SEQUENCE_WAIT);
 			}
-		} else if (topic.equals(Constants.TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + Constants.TOPIC_PATH_DBIRTH + "/"
+		} else if (deviceId != null && topic.equals(Constants.TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + Constants.TOPIC_PATH_DBIRTH + "/"
 				+ edgeNodeId + "/" + deviceId)) {
 			// found the device DBIRTH
 			dbirthReceived = true;
@@ -428,7 +453,7 @@ public class MultipleBrokerTest extends TCKTest {
 						ID_OPERATIONAL_BEHAVIOR_PRIMARY_APPLICATION_STATE_WITH_MULTIPLE_SERVERS_WALK,
 						OPERATIONAL_BEHAVIOR_PRIMARY_APPLICATION_STATE_WITH_MULTIPLE_SERVERS_WALK);
 			}
-		} else if (topic.equals(Constants.TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + Constants.TOPIC_PATH_DDEATH + "/"
+		} else if (deviceId != null && topic.equals(Constants.TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + Constants.TOPIC_PATH_DDEATH + "/"
 				+ edgeNodeId + "/" + deviceId)) {
 
 			if (state == TestStatus.ENDING) {
@@ -460,13 +485,13 @@ public class MultipleBrokerTest extends TCKTest {
 			if (topic.equals(Constants.TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + Constants.TOPIC_PATH_NBIRTH + "/"
 					+ edgeNodeId)) {
 				nbirth_found = true;
-			} else if (topic.equals(Constants.TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + Constants.TOPIC_PATH_DBIRTH
+			} else if (deviceId != null && topic.equals(Constants.TOPIC_ROOT_SP_BV_1_0 + "/" + groupId + "/" + Constants.TOPIC_PATH_DBIRTH
 					+ "/" + edgeNodeId + "/" + deviceId)) {
 				dbirth_found = true;
 			}
 			msg = broker2.getNextMessage();
 		}
-		Utils.setResultIfNotFail(testResults, nbirth_found && dbirth_found,
+		Utils.setResultIfNotFail(testResults, nbirth_found && (deviceId == null || dbirth_found),
 				ID_OPERATIONAL_BEHAVIOR_PRIMARY_APPLICATION_STATE_WITH_MULTIPLE_SERVERS_WALK,
 				OPERATIONAL_BEHAVIOR_PRIMARY_APPLICATION_STATE_WITH_MULTIPLE_SERVERS_WALK);
 	}

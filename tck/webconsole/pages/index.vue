@@ -1,5 +1,5 @@
 <!--****************************************************************************
- * Copyright (c) 2021, 2023 Lukas Brand, Ian Craggs
+ * Copyright (c) 2021, 2024 Lukas Brand, Ian Craggs
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -366,9 +366,6 @@ export default {
                     } else if (!this.sparkplugClient.eonNode.edgeNodeId) {
                         alert("The Edge Node Edge Node ID parameter must be set before executing this test");
                         return;
-                    } else if (!testParameter.parameters["device_ids"].parameterValue) {
-                        alert("The Edge Node Device IDs parameter must be set before executing this test");
-                        return;
                     }
                     const testParameters =
                         this.sparkplugClient.hostApplication.hostId +
@@ -385,9 +382,6 @@ export default {
                         return;
                     } else if (!this.sparkplugClient.eonNode.edgeNodeId) {
                         alert("The Edge Node Edge Node ID parameter must be set before executing this test");
-                        return;
-                    } else if (!testParameter.parameters["device_id"].parameterValue) {
-                        alert("The Edge Node Device IDs parameter must be set before executing this test");
                         return;
                     }
                     const testParameters =
@@ -406,10 +400,10 @@ export default {
                     } else if (!this.sparkplugClient.eonNode.edgeNodeId) {
                         alert("The Edge Node Edge Node ID parameter must be set before executing this test");
                         return;
-                    } else if (!testParameter.parameters["device_id"].parameterValue) {
+                    } /*else if (!testParameter.parameters["device_id"].parameterValue) {
                         alert("The Edge Node Device ID parameter must be set before executing this test");
                         return;
-                    } else if (!testParameter.parameters["broker_uri"].parameterValue) {
+                    } */ else if (!testParameter.parameters["broker_uri"].parameterValue) {
                         alert("The Broker URI parameter must be set before executing this test");
                         return;
                     }
