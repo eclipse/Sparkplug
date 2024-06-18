@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 Anja Helmbrecht-Schaar, Ian Craggs
+ * Copyright (c) 2022, 2024 Anja Helmbrecht-Schaar, Ian Craggs
  * <p>
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -163,9 +163,9 @@ public class Utils {
                 case Int32:
                 case UInt8:
                 case UInt16:
-                case UInt32:
                     expectedValueCase = Metric.ValueCase.INT_VALUE;
                     break;
+                case UInt32: // all integers in Java are signed
                 case Int64:
                 case UInt64:
                 case DateTime:
