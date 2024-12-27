@@ -155,12 +155,17 @@ packet Will Message payload.*#
 Prior to sending an NBIRTH message, the MQTT client associated with the Edge Node must subscribe to
 receive NCMD messages with the following rules.
 
-* [tck-testable tck-id-message-flow-edge-node-ncmd-subscribe]#[yellow-background]*[tck-id-message-flow-edge-node-ncmd-subscribe] The
+* [tck-testable tck-id-message-flow-edge-node-rebirth-subscribe]#[yellow-background]*[tck-id-message-flow-edge-node-rebirth-subscribe] The
 MQTT client associated with the Edge Node MUST subscribe to a topic of the form
+'spBv1.0/group_id/REBIRTH/edge_node_id' where group_id is the Sparkplug Group ID and the edge_node_id
+is the Sparkplug Edge Node ID for this Edge Node. It MUST subscribe on this topic with a QoS of
+0.*#
+** This subscription is mandatory as Edge Nodes MUST be able to respond to 'rebirth requests'.
+* [tck-testable tck-id-message-flow-edge-node-ncmd-subscribe]#[yellow-background]*[tck-id-message-flow-edge-node-ncmd-subscribe] The
+MQTT client associated with the Edge Node SHOULD subscribe to a topic of the form
 'spBv1.0/group_id/NCMD/edge_node_id' where group_id is the Sparkplug Group ID and the edge_node_id
 is the Sparkplug Edge Node ID for this Edge Node. It MUST subscribe on this topic with a QoS of
-1.*#
-** This subscription is mandatory as Edge Nodes MUST be able to respond to 'rebirth requests'.
+0.*#
 
 After subscribing, the Edge Node must follow these additional rules.
 
@@ -946,37 +951,55 @@ Host Application will receive it without ever having received the BIRTH message(
 the Edge Node. As a result, it can send a 'Rebirth Request' using the 'REBIRTH' Sparkplug verb to
 reset its understanding of that Edge Node and become aware of all metrics associated with it.
 
-These are the rules around the 'REBIRTH' Sparkplug verb.
+These are the rules around the 'REBIRTH', 'NREBIRTH', and 'DREBIRTH' Sparkplug verbs.
 
 A 'Rebirth Request' consists of the following message from a Sparkplug Host Application with the
 following characteristics.
 
-* [tck-testable tck-id-operational-behavior-data-commands-ncmd-rebirth-verb]#[yellow-background]*[tck-id-operational-behavior-data-commands-ncmd-rebirth-verb] A
+* [tck-testable tck-id-operational-behavior-data-commands-rebirth-verb]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-verb] A
 Rebirth Request MUST use the REBIRTH Sparkplug verb.*#
-* [tck-testable tck-id-operational-behavior-data-commands-ncmd-rebirth-source]#[yellow-background]*[tck-id-operational-behavior-data-commands-ncmd-rebirth-name] A
-Rebirth Request MUST include a 'source' in the payload and it's value MUST be the Host Application's
-host_id.*#
+* [tck-testable tck-id-operational-behavior-data-commands-rebirth-source]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-name] A
+Rebirth Request MUST include a metric with the name 'source' in the payload and its value MUST be
+the Host Application's host_id.*#
 
 Upon receipt of a Rebirth Request, the Edge Node must do the following.
 
-#FIXME - everything below
-
 * [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-1]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-1] When
-an Edge Node receives a Rebirth Request, it MUST immediately stop sending DATA messages.*#
+an Edge Node receives a Rebirth Request, it MUST immediately pause sending of DATA messages.*#
 * [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-2]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-2] After
-an Edge Node stops sending DATA messages, it MUST send a complete BIRTH sequence including the
-NBIRTH and DBIRTH(s) if applicable.*#
+an Edge Node stops sending DATA messages, it MUST send a complete REBIRTH sequence including the
+NREBIRTH and DREBIRTH(s) if applicable.*#
 * [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-3]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-3] The
-NBIRTH MUST include the same bdSeq metric with the same value it had included in the Will Message
+NREBIRTH MUST include the same bdSeq metric with the same value it had included in the Will Message
 of the previous MQTT CONNECT packet.*#
 ** Because a new MQTT Session is not being established, there is no reason to update the bdSeq number
-* After the new BIRTH sequence is published, the Edge Node may continue sending DATA messages.
+* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-4]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-4] The
+NREBIRTH payload MUST use a seq number that specified to integrate into the existing DATA stream
+from the Edge Node.
+** For example, if the next pending DATA message sequence number will be 100 and the Edge Node has
+two devices, the NBIRTHs sequence number value must be 97. This means the sequence numbers will be:
+NBIRTH: 97, DBIRTH 1: 98, DBIRTH 2: 99, DATA: 100
+** This allows other host applications to continue running without being affected by another Host
+Application getting in sync with the data stream.
+* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-5]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-5] The
+NREBIRTH payload MUST account for sequence number rollover if required based on the next pending
+DATA message and the number of devices under the scope of the Edge Node.
+** For example, if the next pending DATA message sequence number will be 1 and the Edge Node has
+two devices, the NBIRTHs sequence number value must be 18446744073709551614. This means the sequence
+numbers will be: NBIRTH: 18446744073709551614, DBIRTH 1: 18446744073709551615, DBIRTH 2: 0, DATA: 1
+** The above example is based on the fact that the max value of a UINT64 is 18446744073709551615
+* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-6]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-6] Each
+DREBIRTH payload MUST use a seq number that is incremented by one from the previous message.
+* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-7]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-7] Each
+NREBIRTH  and DREBIRTH payload MUST include the current values for all metrics to properly integrate
+into the existing DATA stream.
+* After the new REBIRTH sequence is published, the Edge Node MAY continue sending DATA messages.
 
-Another common use case for sending commands is to use them to 'write' to outputs on Sparkplug
-Devices. Often these are PLCs or RTUs with writable outputs. NCMD and DCMD messages can be used for
-these writes. The general flow is for a Host Application to send a command message, the Edge Device
-receives the message and writes to the output using the native protocol. Then when the output
-changes value, it results in the Edge Node publishing a DATA message denoting the new value.
+Sparkplug commands are used to 'write' to outputs on Sparkplug Edge Nodes or Devices. Often these
+are PLCs or RTUs with writable outputs. NCMD and DCMD messages can be used for these writes. The
+general flow is for a Host Application to send a command message, the Edge Device receives the message
+and writes to the output using the native protocol. Then when the output changes value, it results
+in the Edge Node publishing a DATA message denoting the new value.
 
 For Edge Node level commands, the following rules must be followed.
 
