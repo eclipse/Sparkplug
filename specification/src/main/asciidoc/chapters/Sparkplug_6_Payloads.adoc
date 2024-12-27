@@ -289,8 +289,11 @@ message Payload {
         optional string file_type       = 6;        // File type (i.e. xml, json, txt, cpp, etc)
         optional string md5             = 7;        // md5 of data
 
-        // Catchalls and future expansion
+        // Others
         optional string description     = 8;        // Could be anything such as json or xml of custom properties
+        optional string engUnit         = 9;        // Engineering units
+
+        // Future expansion
         extensions                      9 to max;
     }
 
