@@ -183,8 +183,9 @@ Edge Node's MQTT Will Message's payload MUST be a Sparkplug Google Protobuf enco
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-will-message-payload-bdSeq]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-will-message-payload-bdSeq] The
 Edge Node's MQTT Will Message's payload MUST include a metric with the name of 'bdSeq', the datatype
 of INT64, and the value MUST be incremented by one from the value in the previous MQTT CONNECT
-packet unless the value would be greater than 255. If in the previous NBIRTH a value of 255 was
-sent, the next MQTT Connect packet Will Message payload bdSeq number value MUST have a value of 0.*#
+packet unless the value would be greater than 18446744073709551615 (max value of a UINT64). If in
+the previous NBIRTH a value of 18446744073709551615 was sent, the next MQTT Connect packet Will
+Message payload bdSeq number value MUST have a value of 0.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-will-message-qos]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-will-message-qos] The
 Edge Node's MQTT Will Message's MQTT QoS MUST be 1.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-will-message-will-retained]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-will-message-will-retained] The
@@ -234,9 +235,11 @@ Edge Node's NBIRTH MQTT QoS MUST be 0.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-nbirth-retained]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-nbirth-retained] The
 Edge Node's NBIRTH retained flag MUST be set to false.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-nbirth-payload-seq]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-nbirth-payload-seq] The
-Edge Node's NBIRTH payload MUST include a 'seq' number that is between 0 and 255 (inclusive).*#
+Edge Node's NBIRTH payload MUST include a 'seq' number that is between 0 and 18446744073709551615
+(inclusive).*#
 ** This will become the starting sequence number which all following messages will include a
-sequence number that is one more than the previous up to 255 where it wraps back to zero.
+sequence number that is one more than the previous up to 18446744073709551615 (max value of a
+UINT64) where it wraps back to zero.
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-phid-offline]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-phid-offline] If
 the Edge Node is configured to wait for a Primary Host Application, it is connected to the MQTT
 Server, and receives a STATE message on its configured Primary Host, the timestamp value in the
@@ -431,9 +434,9 @@ Device's DBIRTH MQTT QoS MUST be 0.*#
 * [tck-testable tck-id-message-flow-device-birth-publish-dbirth-retained]#[yellow-background]*[tck-id-message-flow-device-birth-publish-dbirth-retained] The
 Device's DBIRTH retained flag MUST be set to false.*#
 * [tck-testable tck-id-message-flow-device-birth-publish-dbirth-payload-seq]#[yellow-background]*[tck-id-message-flow-device-birth-publish-dbirth-payload-seq] The
-Device's DBIRTH payload MUST include a 'seq' number that is between 0 and 255 (inclusive) and be one
-more than was included in the prior Sparkplug message sent from the Edge Node associated with this
-Device.*#
+Device's DBIRTH payload MUST include a 'seq' number that is between 0 and 18446744073709551615
+(inclusive) and be one more than was included in the prior Sparkplug message sent from the Edge Node
+associated with this Device.*#
 
 In order to expose and populate the metrics from any device, the following simple
 session diagram outlines the requirements:

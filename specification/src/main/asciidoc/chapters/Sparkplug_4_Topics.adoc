@@ -284,7 +284,7 @@ messages MUST be published with MQTT QoS equal to 0 and retain equal to false.*#
 * [tck-testable tck-id-topics-ndata-seq-num]#[yellow-background]*[tck-id-topics-ndata-seq-num] The
 NDATA MUST include a sequence number in the payload and it MUST have a value of one greater than the
 previous MQTT message from the Edge Node contained unless the previous MQTT message contained a
-value of 255. In this case the sequence number MUST be 0.*#
+value of 18446744073709551615 (max value of a UINT64). In this case the sequence number MUST be 0.*#
 * [tck-testable tck-id-topics-ndata-timestamp]#[yellow-background]*[tck-id-topics-ndata-timestamp] The
 NDATA MUST include a timestamp denoting the date and time the message was sent from the Edge Node.*#
 * [tck-testable tck-id-topics-ndata-payload]#[yellow-background]*[tck-id-topics-ndata-payload] The
@@ -398,7 +398,7 @@ messages MUST be published with MQTT QoS equal to 0 and retain equal to false.*#
 * [tck-testable tck-id-topics-dbirth-seq]#[yellow-background]*[tck-id-topics-dbirth-seq] The DBIRTH
 MUST include a sequence number in the payload and it MUST have a value of one greater than the
 previous MQTT message from the Edge Node contained unless the previous MQTT message contained a
-value of 255. In this case the sequence number MUST be 0.*#
+value of 18446744073709551615 (max value of a UINT64). In this case the sequence number MUST be 0.*#
 * [tck-testable tck-id-topics-dbirth-timestamp]#[yellow-background]*[tck-id-topics-dbirth-timestamp] The
 DBIRTH MUST include a timestamp denoting the date and time the message was sent from the Edge Node.*#
 * [tck-testable tck-id-topics-dbirth-metric-reqs]#[yellow-background]*[tck-id-topics-dbirth-metric-reqs] The
@@ -456,7 +456,7 @@ messages MUST be published with MQTT QoS equal to 0 and retain equal to false.*#
 * [tck-testable tck-id-topics-ddata-seq-num]#[yellow-background]*[tck-id-topics-ddata-seq-num] The
 DDATA MUST include a sequence number in the payload and it MUST have a value of one greater than the
 previous MQTT message from the Edge Node contained unless the previous MQTT message contained a
-value of 255. In this case the sequence number MUST be 0.*#
+value of 18446744073709551615 (max value of a UINT64). In this case the sequence number MUST be 0.*#
 * [tck-testable tck-id-topics-ddata-timestamp]#[yellow-background]*[tck-id-topics-ddata-timestamp] The
 DDATA MUST include a timestamp denoting the date and time the message was sent from the Edge Node.*#
 * [tck-testable tck-id-topics-ddata-payload]#[yellow-background]*[tck-id-topics-ddata-payload] The
@@ -493,7 +493,7 @@ messages MUST be published with MQTT QoS equal to 0 and retain equal to false.*#
 * [tck-testable tck-id-topics-ddeath-seq-num]#[yellow-background]*[tck-id-topics-ddeath-seq-num] The
 DDEATH MUST include a sequence number in the payload and it MUST have a value of one greater than
 the previous MQTT message from the Edge Node contained unless the previous MQTT message contained a
-value of 255. In this case the sequence number MUST be 0.*#
+value of 18446744073709551615 (max value of a UINT64). In this case the sequence number MUST be 0.*#
 
 [[command_dcmd]]
 ===== Command (DCMD)

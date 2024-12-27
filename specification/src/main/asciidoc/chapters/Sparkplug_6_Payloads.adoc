@@ -424,12 +424,13 @@ link:#payloads_b_metric[here].
 sequence number MUST be included in the payload of every Sparkplug MQTT message from an Edge Node
 except NDEATH messages.*#
 **** [tck-testable tck-id-payloads-sequence-num-req-nbirth]#[yellow-background]*[tck-id-payloads-sequence-num-zero-nbirth] A
-NBIRTH message from an Edge Node MUST always contain a sequence number between 0 and 255
-(inclusive).*#
+NBIRTH message from an Edge Node MUST always contain a sequence number between 0 and
+18446744073709551615 (inclusive).*#
 **** [tck-testable tck-id-payloads-sequence-num-incrementing]#[yellow-background]*[tck-id-payloads-sequence-num-incrementing] All
 subsequent messages after an NBIRTH from an Edge Node MUST contain a sequence number that is
-continually increasing by one in each message from that Edge Node until a value of 255 is reached.
-At that point, the sequence number of the following message MUST be zero.*#
+continually increasing by one in each message from that Edge Node until a value of
+18446744073709551615 (max value of a UINT64) is reached. At that point, the sequence number of the
+following message MUST be zero.*#
 ** _uuid_
 *** This is a field which can be used to represent a schema or some other specific form of the
 message. Example usage would be to supply a UUID which represents an encoding mechanism of the
@@ -1068,8 +1069,8 @@ published.*#
 Edge Node Descriptor in any Sparkplug infrastructure MUST be unique in the system.*#
 ** These are used like addresses and need to be unique as a result.
 * [tck-testable tck-id-payloads-nbirth-seq]#[yellow-background]*[tck-id-payloads-nbirth-seq] Every
-NBIRTH message MUST include a sequence number and it MUST have a value between 0 and 255
-(inclusive).*#
+NBIRTH message MUST include a sequence number and it MUST have a value between 0 and
+18446744073709551615 (inclusive).*#
 * [tck-testable tck-id-payloads-nbirth-bdseq]#[yellow-background]*[tck-id-payloads-nbirth-bdseq] Every
 NBIRTH message MUST include a bdSeq number metric.*#
 * [tck-testable tck-id-payloads-nbirth-bdseq-repeat]#[yellow-background]*[tck-id-payloads-nbirth-bdseq-repeat] The
@@ -1184,8 +1185,8 @@ published.*#
 Edge Node Descriptor in any Sparkplug infrastructure MUST be unique in the system.*#
 ** These are used like addresses and need to be unique as a result.
 * [tck-testable tck-id-payloads-nrebirth-seq-1]#[yellow-background]*[tck-id-payloads-nrebirth-seq-1] Every
-NREBIRTH message MUST include a sequence number and it MUST have a value between 0 and 255
-(inclusive).*#
+NREBIRTH message MUST include a sequence number and it MUST have a value between 0 and
+18446744073709551615 (inclusive).*#
 * [tck-testable tck-id-payloads-nrebirth-seq-2]#[yellow-background]*[tck-id-payloads-nrebirth-seq-2] Every
 NREBIRTH message MUST include a sequence number that is the following value:*#
 ** rsn = pds - (1 + dc)
@@ -1303,8 +1304,9 @@ published.*#
 DBIRTH message MUST include a sequence number.*#
 * [tck-testable tck-id-payloads-dbirth-seq-inc]#[yellow-background]*[tck-id-payloads-dbirth-seq-inc] Every
 DBIRTH message MUST include a sequence number value that is one greater than the previous sequence
-number sent by the Edge Node. This value MUST never exceed 255. If in the previous sequence number
-sent by the Edge Node was 255, the next sequence number sent MUST have a value of 0.*#
+number sent by the Edge Node. This value MUST never exceed 18446744073709551615 (max value of a
+UINT64). If in the previous sequence number sent by the Edge Node was 18446744073709551615, the next
+sequence number sent MUST have a value of 0.*#
 * [tck-testable tck-id-payloads-dbirth-order]#[yellow-background]*[tck-id-payloads-dbirth-order] All
 DBIRTH messages sent by an Edge Node MUST be sent immediately after the NBIRTH and before any NDATA
 or DDATA messages are published by the Edge Node.*#
@@ -1424,8 +1426,9 @@ published.*#
 DREBIRTH message MUST include a sequence number.*#
 * [tck-testable tck-id-payloads-drebirth-seq-inc]#[yellow-background]*[tck-id-payloads-drebirth-seq-inc] Every
 DREBIRTH message MUST include a sequence number value that is one greater than the previous sequence
-number sent by the Edge Node. This value MUST never exceed 255. If in the previous sequence number
-sent by the Edge Node was 255, the next sequence number sent MUST have a value of 0.*#
+number sent by the Edge Node. This value MUST never exceed 18446744073709551615 (max value of a
+UINT64). If in the previous sequence number sent by the Edge Node was 18446744073709551615, the next
+sequence number sent MUST be a value of 0.*#
 * [tck-testable tck-id-payloads-drebirth-order]#[yellow-background]*[tck-id-payloads-drebirth-order] All
 DREBIRTH messages sent by an Edge Node MUST be sent immediately after the NREBIRTH and before any
 NDATA or DDATA messages are published by the Edge Node.*#
@@ -1550,8 +1553,9 @@ published.*#
 NDATA message MUST include a sequence number.*#
 * [tck-testable tck-id-payloads-ndata-seq-inc]#[yellow-background]*[tck-id-payloads-ndata-seq-inc] Every
 NDATA message MUST include a sequence number value that is one greater than the previous sequence
-number sent by the Edge Node. This value MUST never exceed 255. If in the previous sequence number
-sent by the Edge Node was 255, the next sequence number sent MUST have a value of 0.*#
+number sent by the Edge Node. This value MUST never exceed 18446744073709551615 (max value of a
+UINT64). If in the previous sequence number sent by the Edge Node was 18446744073709551615, the next
+sequence number sent MUST have a value of 0.*#
 * [tck-testable tck-id-payloads-ndata-order]#[yellow-background]*[tck-id-payloads-ndata-order] All
 NDATA messages sent by an Edge Node MUST NOT be sent until all the NBIRTH and all DBIRTH messages
 have been published by the Edge Node.*#
@@ -1607,8 +1611,9 @@ published.*#
 DDATA message MUST include a sequence number.*#
 * [tck-testable tck-id-payloads-ddata-seq-inc]#[yellow-background]*[tck-id-payloads-ddata-seq-inc] Every
 DDATA message MUST include a sequence number value that is one greater than the previous sequence
-number sent by the Edge Node. This value MUST never exceed 255. If in the previous sequence number
-sent by the Edge Node was 255, the next sequence number sent MUST have a value of 0.*#
+number sent by the Edge Node. This value MUST never exceed 18446744073709551615 (max value of a
+UINT64). If in the previous sequence number sent by the Edge Node was 18446744073709551615, the next
+sequence number sent MUST have a value of 0.*#
 * [tck-testable tck-id-payloads-ddata-order]#[yellow-background]*[tck-id-payloads-ddata-order] All
 DDATA messages sent by an Edge Node MUST NOT be sent until all the NBIRTH and all DBIRTH messages
 have been published by the Edge Node.*#
@@ -1812,8 +1817,8 @@ message.
 ** It is important to note that any new CONNECT packet must increment the bdSeq number in the
 payload compared to what was in the previous CONNECT packet. This ensures that any Host Applications
 will be able to distinguish between current and old bdSeq numbers in the event that messages are
-delivered out of order. When incrementing the bdSeq number, if the previous value was 255, the next
-must be zero.
+delivered out of order. When incrementing the bdSeq number, if the previous value was
+18446744073709551615 (max value of a UINT64), the next value must be zero.
 * [tck-testable tck-id-payloads-ndeath-will-message-publisher]#[yellow-background]*[tck-id-payloads-ndeath-will-message-publisher] An
 NDEATH message SHOULD be published by the Edge Node before it intentionally disconnects from the
 MQTT Server.*#
@@ -1877,8 +1882,9 @@ published.*#
 DDEATH message MUST include a sequence number.*#
 * [tck-testable tck-id-payloads-ddeath-seq-inc]#[yellow-background]*[tck-id-payloads-ddeath-seq-inc] Every
 DDEATH message MUST include a sequence number value that is one greater than the previous sequence
-number sent by the Edge Node. This value MUST never exceed 255. If in the previous sequence number
-sent by the Edge Node was 255, the next sequence number sent MUST have a value of 0.*#
+number sent by the Edge Node. This value MUST never exceed 18446744073709551615 (max value of a
+UINT64). If in the previous sequence number sent by the Edge Node was 18446744073709551615, the next
+sequence number sent MUST have a value of 0.*#
 
 The following is a representation of a simple DDEATH message on the topic:
 
