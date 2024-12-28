@@ -210,8 +210,13 @@ The NBIRTH message requires the following payload components.
 messages MUST be published with MQTT QoS equal to 0 and retain equal to false.*#
 * [tck-testable tck-id-topics-nbirth-seq-num]#[yellow-background]*[tck-id-topics-nbirth-seq-num] The
 NBIRTH MUST include a sequence number in the payload and it MUST have a value of 0.*#
-* [tck-testable tck-id-topics-nbirth-timestamp]#[yellow-background]*[tck-id-topics-nbirth-timestamp] The
-NBIRTH MUST include a timestamp denoting the date and time the message was sent from the Edge Node.*#
+* [tck-testable tck-id-topics-nbirth-timestamp-1]#[yellow-background]*[tck-id-topics-nbirth-timestamp-1] The
+NBIRTH MUST include the overall payload timestamp denoting the date and time the message was sent
+from the Edge Node.*#
+* [tck-testable tck-id-topics-nbirth-timestamp-2]#[yellow-background]*[tck-id-topics-nbirth-timestamp-2] Each
+individual Metric in the payload MAY include its own timestamp. If it does not, it is assumed the
+'metric value change time' is that over the overall payload timestamp included in the NBIRTH
+paylaod.*#
 * [tck-testable tck-id-topics-nbirth-metric-reqs]#[yellow-background]*[tck-id-topics-nbirth-metric-reqs] The
 NBIRTH MUST include every metric the Edge Node will ever report on.*#
 * [tck-testable tck-id-topics-nbirth-metrics]#[yellow-background]*[tck-id-topics-nbirth-metrics] At
@@ -285,8 +290,13 @@ messages MUST be published with MQTT QoS equal to 0 and retain equal to false.*#
 NDATA MUST include a sequence number in the payload and it MUST have a value of one greater than the
 previous MQTT message from the Edge Node contained unless the previous MQTT message contained a
 value of 18446744073709551615 (max value of a UINT64). In this case the sequence number MUST be 0.*#
-* [tck-testable tck-id-topics-ndata-timestamp]#[yellow-background]*[tck-id-topics-ndata-timestamp] The
-NDATA MUST include a timestamp denoting the date and time the message was sent from the Edge Node.*#
+* [tck-testable tck-id-topics-ndata-timestamp-1]#[yellow-background]*[tck-id-topics-ndata-timestamp-1] The
+NDATA MUST include the overall payload timestamp denoting the date and time the message was sent from
+the Edge Node.*#
+* [tck-testable tck-id-topics-ndata-timestamp-2]#[yellow-background]*[tck-id-topics-ndata-timestamp-2] Each
+individual Metric in the payload MAY include its own timestamp. If it does not, it is assumed the
+'metric value change time' is that over the overall payload timestamp included in the NDATA
+payload.*#
 * [tck-testable tck-id-topics-ndata-payload]#[yellow-background]*[tck-id-topics-ndata-payload] The
 NDATA MUST include the Edge Node’s metrics that have changed since the last NBIRTH or NDATA
 message.*#
@@ -399,8 +409,13 @@ messages MUST be published with MQTT QoS equal to 0 and retain equal to false.*#
 MUST include a sequence number in the payload and it MUST have a value of one greater than the
 previous MQTT message from the Edge Node contained unless the previous MQTT message contained a
 value of 18446744073709551615 (max value of a UINT64). In this case the sequence number MUST be 0.*#
-* [tck-testable tck-id-topics-dbirth-timestamp]#[yellow-background]*[tck-id-topics-dbirth-timestamp] The
-DBIRTH MUST include a timestamp denoting the date and time the message was sent from the Edge Node.*#
+* [tck-testable tck-id-topics-dbirth-timestamp-1]#[yellow-background]*[tck-id-topics-dbirth-timestamp-1] The
+DBIRTH MUST include the overall payload timestamp denoting the date and time the message was sent
+from the Edge Node.*#
+* [tck-testable tck-id-topics-dbirth-timestamp-2]#[yellow-background]*[tck-id-topics-dbirth-timestamp-2] Each
+individual Metric in the payload MAY include its own timestamp. If it does not, it is assumed the
+'metric value change time' is that over the overall payload timestamp included in the DBIRTH
+payload.*#
 * [tck-testable tck-id-topics-dbirth-metric-reqs]#[yellow-background]*[tck-id-topics-dbirth-metric-reqs] The
 DBIRTH MUST include every metric the Edge Node will ever report on.*#
 * [tck-testable tck-id-topics-dbirth-metrics]#[yellow-background]*[tck-id-topics-dbirth-metrics] At
@@ -457,8 +472,13 @@ messages MUST be published with MQTT QoS equal to 0 and retain equal to false.*#
 DDATA MUST include a sequence number in the payload and it MUST have a value of one greater than the
 previous MQTT message from the Edge Node contained unless the previous MQTT message contained a
 value of 18446744073709551615 (max value of a UINT64). In this case the sequence number MUST be 0.*#
-* [tck-testable tck-id-topics-ddata-timestamp]#[yellow-background]*[tck-id-topics-ddata-timestamp] The
-DDATA MUST include a timestamp denoting the date and time the message was sent from the Edge Node.*#
+* [tck-testable tck-id-topics-ddata-timestamp-1]#[yellow-background]*[tck-id-topics-ddata-timestamp-1] The
+DDATA MUST include the overall payload timestamp denoting the date and time the message was sent from
+the Edge Node.*#
+* [tck-testable tck-id-topics-ddata-timestamp-2]#[yellow-background]*[tck-id-topics-ddata-timestamp-2] Each
+individual Metric in the payload MAY include its own timestamp. If it does not, it is assumed the
+'metric value change time' is that over the overall payload timestamp included in the DDATA
+payload.*#
 * [tck-testable tck-id-topics-ddata-payload]#[yellow-background]*[tck-id-topics-ddata-payload] The
 DDATA MUST include the Device’s metrics that have changed since the last DBIRTH or DDATA message.*#
 

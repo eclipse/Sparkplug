@@ -299,9 +299,9 @@ message Payload {
 
     message Metric {
 
-        optional string   name          = 1;        // Metric name - should only be included on birth
-        optional uint64   alias         = 2;        // Metric alias - tied to name on birth and included in all later DATA messages
-        optional uint64   timestamp     = 3;        // Timestamp associated with data acquisition time
+        optional string   name          = 1;        // Metric name - Required in BIRTH messages, optional in DATA messages if using aliases
+        optional uint64   alias         = 2;        // Metric alias - tied to name on BIRTH and included in all later DATA messages
+        optional uint64   timestamp     = 3;        // Timestamp associated with data acquisition time - if omitted, the overall payload timestamp is assumed as the data acquisition time
         optional uint32   datatype      = 4;        // DataType of the metric/tag value
         optional bool     is_historical = 5;        // If this is historical data and should not update real time tag
         optional bool     is_transient  = 6;        // Tells consuming clients such as MQTT Engine to not store this as a tag
@@ -407,9 +407,9 @@ following definitions explain the components that make up a payload.
 ==== Payload
 
 A Sparkplug B payload is the top-level component that is encoded and used in an MQTT message. It
-contains some basic information such as a timestamp and a sequence number as well as an array of
-metrics which contain key/value pairs of data. A Sparkplug B payload includes the following
-components.
+contains some basic information such as an overall payload timestamp and a sequence number as well
+as an array of metrics which contain key/value pairs of data. A Sparkplug B payload includes the
+following components.
 
 * *payload*
 ** _timestamp_
@@ -477,13 +477,20 @@ DDATA, NCMD, and DCMD messages MUST only include an alias and the metric name MU
 ** This is the timestamp in the form of an unsigned 64-bit integer representing the number of
 milliseconds since epoch (Jan 1, 1970).
 ** [tck-testable tck-id-payloads-name-birth-data-requirement]#[yellow-background]*[tck-id-payloads-name-birth-data-requirement] The
-timestamp MUST be included with every metric in all NBIRTH, DBIRTH, NDATA, and DDATA messages.*#
+timestamp MAY be included with every metric in all NBIRTH, DBIRTH, NDATA, and DDATA messages.*#
+*** If the timestamp is omitted from the Metric definition, the overall payload timestamp MUST be
+assumed as the data acquisition time.
+*** Non-normative comment: This timestamp represents the time at which the value of a metric was
+acquired for message types of NBIRTH, NREBIRTH, NDATA, NBIRTH, DREBIRTH, and DDATA.
 ** [tck-testable tck-id-payloads-name-cmd-requirement]#[yellow-background]*[tck-id-payloads-name-cmd-requirement] The
 timestamp MAY be included with metrics in NCMD and DCMD messages.*#
-** [tck-testable tck-id-payloads-metric-timestamp-in-UTC]#[yellow-background]*[tck-id-payloads-metric-timestamp-in-UTC] The
-timestamp MUST be in UTC.*#
+*** If the timestamp is omitted from the Metric definition, the overall payload timestamp MUST be
+assumed as the write time.
 *** Non-normative comment: This timestamp represents the time at which the value of a metric was
-captured.
+written to on the Host Application for NCMD and DCMD messages.
+** [tck-testable tck-id-payloads-metric-timestamp-in-UTC]#[yellow-background]*[tck-id-payloads-metric-timestamp-in-UTC] The
+timestamp MUST be in UTC if it is included.*#
+
 * *datatype*
 ** [tck-testable tck-id-payloads-metric-datatype-value-type]#[yellow-background]*[tck-id-payloads-metric-datatype-value-type] The
 datatype MUST be an unsigned 32-bit integer representing the datatype.*#
@@ -1066,7 +1073,7 @@ subsequently sent for that given MQTT Session. These are can be found in the
 link:#operational_behavior_edge_node_session_establishment[Edge Node Session Establishment Section]
 
 * [tck-testable tck-id-payloads-nbirth-timestamp]#[yellow-background]*[tck-id-payloads-nbirth-timestamp] NBIRTH
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-nbirth-edge-node-descriptor]#[yellow-background]*[tck-id-payloads-nbirth-edge-node-descriptor] Every
 Edge Node Descriptor in any Sparkplug infrastructure MUST be unique in the system.*#
@@ -1182,7 +1189,7 @@ subsequently sent for that given MQTT Session. These are can be found in the
 link:#operational_behavior_edge_node_session_establishment[Edge Node Session Establishment Section]
 
 * [tck-testable tck-id-payloads-nrebirth-timestamp]#[yellow-background]*[tck-id-payloads-nrebirth-timestamp] NREBIRTH
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-nrebirth-edge-node-descriptor]#[yellow-background]*[tck-id-payloads-nrebirth-edge-node-descriptor] Every
 Edge Node Descriptor in any Sparkplug infrastructure MUST be unique in the system.*#
@@ -1301,7 +1308,7 @@ The DBIRTH is responsible for informing the Host Application of all of the infor
 device. This includes every metric it will publish data for in the future.
 
 * [tck-testable tck-id-payloads-dbirth-timestamp]#[yellow-background]*[tck-id-payloads-dbirth-timestamp] DBIRTH
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-dbirth-seq]#[yellow-background]*[tck-id-payloads-dbirth-seq] Every
 DBIRTH message MUST include a sequence number.*#
@@ -1423,7 +1430,7 @@ The DREBIRTH is responsible for informing a Host Application that is requesting 
 the information about the device. This includes every metric it will publish data for in the future.
 
 * [tck-testable tck-id-payloads-drebirth-timestamp]#[yellow-background]*[tck-id-payloads-drebirth-timestamp] DREBIRTH
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-drebirth-seq]#[yellow-background]*[tck-id-payloads-drebirth-seq] Every
 DREBIRTH message MUST include a sequence number.*#
@@ -1550,7 +1557,7 @@ an ordered List of metrics, multiple different change events for multiple differ
 be included in a single NDATA message.
 
 * [tck-testable tck-id-payloads-ndata-timestamp]#[yellow-background]*[tck-id-payloads-ndata-timestamp] NDATA
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-ndata-seq]#[yellow-background]*[tck-id-payloads-ndata-seq] Every
 NDATA message MUST include a sequence number.*#
@@ -1608,7 +1615,7 @@ multiple different change events for multiple different metrics can all be inclu
 DDATA message.
 
 * [tck-testable tck-id-payloads-ddata-timestamp]#[yellow-background]*[tck-id-payloads-ddata-timestamp] DDATA
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-ddata-seq]#[yellow-background]*[tck-id-payloads-ddata-seq] Every
 DDATA message MUST include a sequence number.*#
@@ -1663,7 +1670,7 @@ metric.
 REBIRTH messages are used by Host Applications to resync with an Edge Nodes existing data stream.
 
 * [tck-testable tck-id-payloads-rebirth-timestamp]#[yellow-background]*[tck-id-payloads-rebirth-timestamp] REBIRTH
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-rebirth-seq]#[yellow-background]*[tck-id-payloads-rebirth-seq] Every
 REBIRTH message MUST NOT include a sequence number.*#
@@ -1711,7 +1718,7 @@ NCMD messages are used by Host Applications to write to Edge Node outputs and se
 commands to Edge Nodes. Multiple metrics can be supplied in a single NCMD message.
 
 * [tck-testable tck-id-payloads-ncmd-timestamp]#[yellow-background]*[tck-id-payloads-ncmd-timestamp] NCMD
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-ncmd-seq]#[yellow-background]*[tck-id-payloads-ncmd-seq] Every NCMD
 message MUST NOT include a sequence number.*#
@@ -1755,7 +1762,7 @@ DCMD messages are used by Host Applications to write to device outputs and send 
 commands to devices. Multiple metrics can be supplied in a single DCMD message.
 
 * [tck-testable tck-id-payloads-dcmd-timestamp]#[yellow-background]*[tck-id-payloads-dcmd-timestamp] DCMD
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-dcmd-seq]#[yellow-background]*[tck-id-payloads-dcmd-seq] Every DCMD
 message MUST NOT include a sequence number.*#
@@ -1879,7 +1886,7 @@ determines that a device is no longer accessible (i.e. it has turned off, stoppe
 the Edge Node should publish a DDEATH to denote that device connectivity has been lost.
 
 * [tck-testable tck-id-payloads-ddeath-timestamp]#[yellow-background]*[tck-id-payloads-ddeath-timestamp] DDEATH
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-ddeath-seq]#[yellow-background]*[tck-id-payloads-ddeath-seq] Every
 DDEATH message MUST include a sequence number.*#
