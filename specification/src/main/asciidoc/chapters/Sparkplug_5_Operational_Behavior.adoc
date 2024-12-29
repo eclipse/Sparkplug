@@ -642,7 +642,7 @@ Application DEATH Certificate that indicates STATE is online=false with the mess
 to true in the MQTT Will Message. Then the Primary Host Application BIRTH Certificate must be
 published with a STATE payload of online=true. In both of these messages the timestamp value must
 match each other and represent the current connection time. The timestamp value must be a JSON
-number and represent the number of UTC milliseconds since Epoch.
+number and represent the number of UTC nanoseconds since Epoch.
 
 . As the Edge Node walks its available MQTT Server list, it will establish an MQTT Session with a
 server that has a STATE message with a JSON payload that has online=true. The Edge Node can stay
@@ -814,7 +814,7 @@ host_id is the unique identifier of the Sparkplug Host Application.*#
 Death Certificate Payload registered as the MQTT Will Message in the MQTT CONNECT packet MUST be
 JSON UTF-8 data. It MUST include two key/value pairs where one key MUST be 'online' and it's value
 is a boolean 'false'. The other key MUST be 'timestamp' and the value MUST be a numeric value
-representing the current UTC time in milliseconds since Epoch.*#
+representing the current UTC time in nanoseconds since Epoch.*#
 * [tck-testable tck-id-operational-behavior-host-application-death-qos]#[yellow-background]*[tck-id-operational-behavior-host-application-death-qos] The
 Sparkplug Host Application's Death MQTT QoS MUST be 1 (at least once).*#
 * [tck-testable tck-id-operational-behavior-host-application-death-retained]#[yellow-background]*[tck-id-operational-behavior-host-application-death-retained] The

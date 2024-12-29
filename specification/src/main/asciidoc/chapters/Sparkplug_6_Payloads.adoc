@@ -414,7 +414,7 @@ following components.
 * *payload*
 ** _timestamp_
 *** This is the timestamp in the form of an unsigned 64-bit integer representing the number of
-milliseconds since epoch (Jan 1, 1970).
+nanoseconds since epoch (Jan 1, 1970).
 *** [tck-testable tck-id-payloads-timestamp-in-UTC]#[yellow-background]*[tck-id-payloads-timestamp-in-UTC] This
 timestamp MUST be in UTC.*#
 *** This timestamp represents the time at which the message was published.
@@ -475,7 +475,7 @@ and DBIRTH messages MUST include both a metric name and alias.*#
 DDATA, NCMD, and DCMD messages MUST only include an alias and the metric name MUST be excluded.*#
 * *timestamp*
 ** This is the timestamp in the form of an unsigned 64-bit integer representing the number of
-milliseconds since epoch (Jan 1, 1970).
+nanoseconds since epoch (Jan 1, 1970).
 ** [tck-testable tck-id-payloads-name-birth-data-requirement]#[yellow-background]*[tck-id-payloads-name-birth-data-requirement] The
 timestamp MAY be included with every metric in all NBIRTH, DBIRTH, NDATA, and DDATA messages.*#
 *** If the timestamp is omitted from the Metric definition, the overall payload timestamp MUST be
@@ -932,7 +932,7 @@ enum DataType {
 *** Google Protocol Buffer Type: string
 *** Sparkplug enum value: 12
 * _DateTime_
-** Date time value as uint64 value representing milliseconds since epoch (Jan 1, 1970)
+** Date time value as uint64 value representing nanoseconds since epoch (Jan 1, 1970)
 ** Google Protocol Buffer Type: uint64
 ** Sparkplug enum value: 13
 * _Text_
@@ -1051,10 +1051,10 @@ ends on a byte boundary.
 *** Example (string array to Metric bytes_value): [ABC, hello] -> [0x41, 0x42, 0x43, 0x00, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00]
 ** _DateTimeArray_
 *** DateTimeArray as an array of packed little endian bytes where each Datetime value is an 8-byte
-value representing the number of milliseconds since epoch in UTC
+value representing the number of nanoseconds since epoch in UTC
 *** Google Protocol Buffer Type: bytes
 *** Sparkplug enum value: 34
-*** Example (DateTime array -> ms since epoch -> Metric bytes_value): ['Wednesday, October 21, 2009 5:27:55.335 AM', 'Friday, June 24, 2022 9:57:55 PM'] -> [1256102875335, 1656107875000] -> [0xC7, 0xD0, 0x90, 0x75, 0x24, 0x01, 0x00, 0x00, 0xB8, 0xBA, 0xB8, 0x97, 0x81, 0x01, 0x00, 0x00]
+*** Example (DateTime array -> nanoseconds since epoch -> Metric bytes_value): ['Wednesday, October 21, 2009 5:27:55.335 AM', 'Friday, June 24, 2022 9:57:55 PM'] -> [1256102875335000000, 1656107875000000000] -> [0xC0, 0x7F, 0xB0, 0xF5, 0xE8, 0x92, 0x6E, 0x11, 0x00, 0x1E, 0x1A, 0x7F, 0x56, 0xAD, 0xFB, 0x16]
 
 [[payloads_payload_representation_on_host_applications]]
 ==== Payload Representation on Host Applications
@@ -1939,7 +1939,7 @@ Sparkplug Host Application MUST set the Will Retained flag to true in the MQTT C
 * [tck-testable tck-id-payloads-state-will-message-payload]#[yellow-background]*[tck-id-payloads-state-will-message-payload] The
 Death Certificate Payload MUST be JSON UTF-8 data. It MUST include two key/value pairs where one key
 MUST be 'online' and it's value is a boolean 'false'. The other key MUST be 'timestamp' and the
-value MUST be a numeric value representing the current UTC time in milliseconds since Epoch.*#
+value MUST be a numeric value representing the current UTC time in nanoseconds since Epoch.*#
 * [tck-testable tck-id-payloads-state-subscribe]#[yellow-background]*[tck-id-payloads-state-subscribe] After
 establishing an MQTT connection, the Sparkplug Host Application MUST subscribe on it's own
 'spBv1.0/STATE/[sparkplug_host_id]' topic.*#

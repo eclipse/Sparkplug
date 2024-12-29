@@ -595,7 +595,7 @@ Server immediately after successfully subscribing its own spBv1.0/STATE/sparkplu
 * [tck-testable tck-id-host-topic-phid-birth-payload]#[yellow-background]*[tck-id-host-topic-phid-birth-payload] The
 Birth Certificate Payload MUST be JSON UTF-8 data. It MUST include two key/value pairs where the
 one key MUST be 'online' and it's value is a boolean 'true'. The other key MUST be 'timestamp' and
-the value MUST be a numeric value representing the current UTC time in milliseconds since Epoch.*#
+the value MUST be a numeric value representing the current UTC time in nanoseconds since Epoch.*#
 * [tck-testable tck-id-host-topic-phid-birth-payload-timestamp]#[yellow-background]*[tck-id-host-topic-phid-birth-payload-timestamp] The
 timestamp metric value MUST be the same timestamp value set in the immediately prior MQTT CONNECT
 packet's Will Message payload.*#
@@ -632,7 +632,7 @@ Sparkplug Host Application MUST provide a Will message in the MQTT CONNECT packe
 * [tck-testable tck-id-host-topic-phid-death-payload]#[yellow-background]*[tck-id-host-topic-phid-death-payload] The
 STATE Death Certificate Payload MUST be JSON UTF-8 data. It MUST include two key/value pairs where
 one key MUST be 'online' and it's value is a boolean 'false'. The other key MUST be 'timestamp' and
-the value MUST be a numeric value representing the current UTC time in milliseconds since Epoch.*#
+the value MUST be a numeric value representing the current UTC time in nanoseconds since Epoch.*#
 * [tck-testable tck-id-host-topic-phid-death-payload-timestamp-connect]#[yellow-background]*[tck-id-host-topic-phid-death-payload-connect] The
 Death Certificate's used in the MQTT CONNECT packet Will message MUST use a timestamp value that
 represents the current UTC time at the time of the CONNECT packet is sent to the MQTT Server.*#
