@@ -943,6 +943,10 @@ to consider.
 There are two types of command (CMD) verbs in Sparkplug. These are NCMD and DCMD messages which
 target Edge Nodes and Devices respectively.
 
+* [tck-testable tck-id-operational-behavior-commands-source]#[yellow-background]*[tck-id-operational-behavior-commands-source] Command
+messages MUST have the 'source' field set in the payload and it MUST have a string value
+representing the Host ID of the Sparkplug Host Application that sent the command message.*#
+
 [[operational_behavior_rebirth]]
 === Rebirth Requests
 
@@ -959,24 +963,24 @@ These are the rules around the 'REBIRTH', 'NREBIRTH', and 'DREBIRTH' Sparkplug v
 A 'Rebirth Request' consists of the following message from a Sparkplug Host Application with the
 following characteristics.
 
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-verb]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-verb] A
+* [tck-testable tck-id-operational-behavior-rebirth-verb]#[yellow-background]*[tck-id-operational-behavior-rebirth-verb] A
 Rebirth Request MUST use the REBIRTH Sparkplug verb.*#
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-source]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-name] A
-Rebirth Request MUST include a metric with the name 'source' in the payload and its value MUST be
-the Host Application's host_id.*#
+* [tck-testable tck-id-operational-behavior-rebirth-source]#[yellow-background]*[tck-id-operational-behavior-rebirth-source] The
+Rebirth Request MUST have the 'source' field set in the payload and it MUST have a string value
+representing the Host ID of the Sparkplug Host Application that sent the REBIRTH message.*#
 
 Upon receipt of a Rebirth Request, the Edge Node must do the following.
 
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-1]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-1] When
+* [tck-testable tck-id-operational-behavior-rebirth-action-1]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-1] When
 an Edge Node receives a Rebirth Request, it MUST immediately pause sending of DATA messages.*#
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-2]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-2] After
+* [tck-testable tck-id-operational-behavior-rebirth-action-2]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-2] After
 an Edge Node stops sending DATA messages, it MUST send a complete REBIRTH sequence including the
 NREBIRTH and DREBIRTH(s) if applicable.*#
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-3]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-3] The
+* [tck-testable tck-id-operational-behavior-rebirth-action-3]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-3] The
 NREBIRTH MUST include the same bdSeq metric with the same value it had included in the Will Message
 of the previous MQTT CONNECT packet.*#
 ** Because a new MQTT Session is not being established, there is no reason to update the bdSeq number
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-4]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-4] The
+* [tck-testable tck-id-operational-behavior-rebirth-action-4]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-4] The
 NREBIRTH payload MUST use a seq number that specified to integrate into the existing DATA stream
 from the Edge Node.
 ** For example, if the next pending DATA message sequence number will be 100 and the Edge Node has
@@ -984,16 +988,16 @@ two devices, the NBIRTHs sequence number value must be 97. This means the sequen
 NBIRTH: 97, DBIRTH 1: 98, DBIRTH 2: 99, DATA: 100
 ** This allows other host applications to continue running without being affected by another Host
 Application getting in sync with the data stream.
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-5]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-5] The
+* [tck-testable tck-id-operational-behavior-rebirth-action-5]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-5] The
 NREBIRTH payload MUST account for sequence number rollover if required based on the next pending
 DATA message and the number of devices under the scope of the Edge Node.
 ** For example, if the next pending DATA message sequence number will be 1 and the Edge Node has
 two devices, the NBIRTHs sequence number value must be 18446744073709551614. This means the sequence
 numbers will be: NBIRTH: 18446744073709551614, DBIRTH 1: 18446744073709551615, DBIRTH 2: 0, DATA: 1
 ** The above example is based on the fact that the max value of a UINT64 is 18446744073709551615
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-6]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-6] Each
+* [tck-testable tck-id-operational-behavior-rebirth-action-6]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-6] Each
 DREBIRTH payload MUST use a seq number that is incremented by one from the previous message.
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-7]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-7] Each
+* [tck-testable tck-id-operational-behavior-rebirth-action-7]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-7] Each
 NREBIRTH  and DREBIRTH payload MUST include the current values for all metrics to properly integrate
 into the existing DATA stream.
 * After the new REBIRTH sequence is published, the Edge Node MAY continue sending DATA messages.
@@ -1006,26 +1010,26 @@ in the Edge Node publishing a DATA message denoting the new value.
 
 For Edge Node level commands, the following rules must be followed.
 
-* [tck-testable tck-id-operational-behavior-data-commands-ncmd-verb]#[yellow-background]*[tck-id-operational-behavior-data-commands-ncmd-verb] An
+* [tck-testable tck-id-operational-behavior-commands-ncmd-verb]#[yellow-background]*[tck-id-operational-behavior-commands-ncmd-verb] An
 Edge Node level command MUST use the NCMD Sparkplug verb.*#
-* [tck-testable tck-id-operational-behavior-data-commands-ncmd-metric-name]#[yellow-background]*[tck-id-operational-behavior-data-commands-ncmd-metric-name] An
+* [tck-testable tck-id-operational-behavior-commands-ncmd-metric-name]#[yellow-background]*[tck-id-operational-behavior-commands-ncmd-metric-name] An
 NCMD message SHOULD include a metric name that was included in the associated NBIRTH message for the
 Edge Node.*#
 ** Sparkplug Edge Node Applications should be resilient to receiving metrics names that were not
 included in the NBIRTH message.
-* [tck-testable tck-id-operational-behavior-data-commands-ncmd-metric-value]#[yellow-background]*[tck-id-operational-behavior-data-commands-ncmd-metric-value] An
+* [tck-testable tck-id-operational-behavior-commands-ncmd-metric-value]#[yellow-background]*[tck-id-operational-behavior-commands-ncmd-metric-value] An
 NCMD message MUST include a compatible metric value for the metric name that it is writing to.*#
 ** In other words, if the metric has a datatype of a boolean the value must be true or false.
 
 For Device level commands, the following rules must be followed.
 
-* [tck-testable tck-id-operational-behavior-data-commands-dcmd-verb]#[yellow-background]*[tck-id-operational-behavior-data-commands-dcmd-verb] A
+* [tck-testable tck-id-operational-behavior-commands-dcmd-verb]#[yellow-background]*[tck-id-operational-behavior-commands-dcmd-verb] A
 Device level command MUST use the DCMD Sparkplug verb.*#
-* [tck-testable tck-id-operational-behavior-data-commands-dcmd-metric-name]#[yellow-background]*[tck-id-operational-behavior-data-commands-dcmd-metric-name] A
+* [tck-testable tck-id-operational-behavior-commands-dcmd-metric-name]#[yellow-background]*[tck-id-operational-behavior-commands-dcmd-metric-name] A
 DCMD message SHOULD include a metric name that was included in the associated DBIRTH message for the
 Device.*#
 ** Sparkplug Edge Node Applications should be resilient to receiving metrics names that were not
 included in the DBIRTH message.
-* [tck-testable tck-id-operational-behavior-data-commands-dcmd-metric-value]#[yellow-background]*[tck-id-operational-behavior-data-commands-dcmd-metric-value] A
+* [tck-testable tck-id-operational-behavior-commands-dcmd-metric-value]#[yellow-background]*[tck-id-operational-behavior-commands-dcmd-metric-value] A
 DCMD message MUST include a compatible metric value for the metric name that it is writing to.*#
 ** In other words, if the metric has a datatype of a boolean the value must be true or false.

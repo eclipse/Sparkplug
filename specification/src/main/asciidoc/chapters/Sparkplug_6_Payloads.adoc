@@ -303,11 +303,12 @@ message Payload {
         optional uint64   alias         = 2;        // Metric alias - tied to name on BIRTH and included in all later DATA messages
         optional uint64   timestamp     = 3;        // Timestamp associated with data acquisition time - if omitted, the overall payload timestamp is assumed as the data acquisition time
         optional uint32   datatype      = 4;        // DataType of the metric/tag value
-        optional bool     is_historical = 5;        // If this is historical data and should not update real time tag
-        optional bool     is_transient  = 6;        // Tells consuming clients such as MQTT Engine to not store this as a tag
-        optional bool     is_null       = 7;        // If this is null - explicitly say so rather than using -1, false, etc for some datatypes.
-        optional MetaData metadata      = 8;        // Metadata for the payload
-        optional PropertySet properties = 9;
+        optional string   source        = 5;        // Source for CMD messages if unique to the Metric (typically for forwarded writes in CMD messages)
+        optional bool     is_historical = 6;        // If this is historical data and should not update real time tag
+        optional bool     is_transient  = 7;        // Tells consuming clients such as MQTT Engine to not store this as a tag
+        optional bool     is_null       = 8;        // If this is null - explicitly say so rather than using -1, false, etc for some datatypes.
+        optional MetaData metadata      = 9;        // Metadata for the payload
+        optional PropertySet properties = 10;
 
         oneof value {
             uint32   int_value                      = 10;
@@ -329,10 +330,11 @@ message Payload {
 
     optional uint64   timestamp     = 1;        // Timestamp at message sending time
     repeated Metric   metrics       = 2;        // Repeated forever - no limit in Google Protobufs
-    optional uint64   seq           = 3;        // Sequence number
-    optional string   uuid          = 4;        // UUID to track message type in terms of schema definitions
-    optional bytes    body          = 5;        // To optionally bypass the whole definition above
-    extensions                      6 to max;   // For third party extensions
+    optional uint64   seq           = 3;        // Message sequence number
+    optional string   source        = 4;        // Source for CMD and REBIRTH messages - the Host Application ID that sent the message
+    optional string   uuid          = 5;        // UUID to track message type in terms of schema definitions
+    optional bytes    body          = 6;        // To optionally bypass the whole definition above
+    extensions                      7 to max;   // For third party extensions
 }
 ----
 
@@ -434,6 +436,15 @@ subsequent messages after an NBIRTH from an Edge Node MUST contain a sequence nu
 continually increasing by one in each message from that Edge Node until a value of
 18446744073709551615 (max value of a UINT64) is reached. At that point, the sequence number of the
 following message MUST be zero.*#
+** _source_
+*** This is the source field which represents the Sparkplug Host Application ID of the publisher for
+NCMD, DCMD, and REBIRTH messages
+**** [tck-testable tck-id-payloads-source-always-included]#[yellow-background]*[tck-id-payloads-source-always-included] A
+source MUST be included in the payload of every NCMD, DCMD, and REBIRTH Sparkplug MQTT message from
+a Sparkplug Host Application.*#
+**** [tck-testable tck-id-payloads-source-value]#[yellow-background]*[tck-id-payloads-source-value] The
+source value, when required, MUST have a value that is the Host Application ID of the publisher of the
+message.*#
 ** _uuid_
 *** This is a field which can be used to represent a schema or some other specific form of the
 message. Example usage would be to supply a UUID which represents an encoding mechanism of the
@@ -490,7 +501,6 @@ assumed as the write time.
 written to on the Host Application for NCMD and DCMD messages.
 ** [tck-testable tck-id-payloads-metric-timestamp-in-UTC]#[yellow-background]*[tck-id-payloads-metric-timestamp-in-UTC] The
 timestamp MUST be in UTC if it is included.*#
-
 * *datatype*
 ** [tck-testable tck-id-payloads-metric-datatype-value-type]#[yellow-background]*[tck-id-payloads-metric-datatype-value-type] The
 datatype MUST be an unsigned 32-bit integer representing the datatype.*#
@@ -501,6 +511,13 @@ link:#payloads_b_datatypes[valid Sparkplug Data Types].*#
 datatype MUST be included with each metric definition in NBIRTH and DBIRTH messages.*#
 ** [tck-testable tck-id-payloads-metric-datatype-not-req]#[yellow-background]*[tck-id-payloads-metric-datatype-not-req] The
 datatype SHOULD NOT be included with metric definitions in NDATA, NCMD, DDATA, and DCMD messages.*#
+* *source*
+** This is the source field which represents the Sparkplug Host Application ID of the publisher for
+NCMD, DCMD, and REBIRTH messages if it differs from the overall payload source value. This may be
+used if the Sparkplug Host Application is forwarding writes on behalf of another Host Application.
+** [tck-testable tck-id-payloads-source-metric-included]#[yellow-background]*[tck-id-payloads-source-metric-included] A
+source MAY be included if the source for this metric value differs from the overall payload source
+value.*#
 * *is_historical*
 ** This is a Boolean flag which denotes whether this metric represents a historical value. In some
 cases, it may be desirable to send metrics after they were acquired from a device or Edge Node. This
@@ -1678,10 +1695,9 @@ REBIRTH message MUST NOT include a sequence number.*#
 messages MUST be published with the MQTT QoS set to 0.*#
 * [tck-testable tck-id-payloads-rebirth-retain]#[yellow-background]*[tck-id-payloads-rebirth-retain] REBIRTH
 messages MUST be published with the MQTT retain flag set to false.*#
-* [tck-testable tck-id-payloads-rebirth-source-metric-1]#[yellow-background]*[tck-id-payloads-rebirth-source-metric-1] REBIRTH
-messages MUST include a metric in the payload with the name of 'source', the dataType MUST be
-'String', and the value MUST be the Sparkplug Host ID of the requesting Sparkplug Host
-Application.*#
+* [tck-testable tck-id-payloads-rebirth-source]#[yellow-background]*[tck-id-payloads-rebirth-source] REBIRTH
+messages MUST have the 'source' field set in the overall message payload and it MUST have a string
+value representing the Host ID of the Sparkplug Host Application that sent the REBIRTH message.*#
 
 The following is a representation of a REBIRTH message on the topic:
 
@@ -1693,17 +1709,12 @@ spBv1.0/Sparkplug B Devices/REBIRTH/Raspberry Pi
 * The ‘Edge Node ID’ is: Raspberry Pi
 * This is an REBIRTH message based on the 'REBIRTH' Sparkplug Verb
 
-Consider the following Sparkplug B payload in the NCMD message shown above:
+Consider the following Sparkplug B payload in the REBIRTH message shown above:
 
 ----
 {
         "timestamp": 1486144502122,
-        "metrics": [{
-                "name": "source",
-                "timestamp": 1486144502122,
-                "dataType": "String",
-                "value": "IamHost"
-        }]
+        "source" : "IamHost"
 }
 ----
 
@@ -1726,6 +1737,14 @@ message MUST NOT include a sequence number.*#
 messages MUST be published with the MQTT QoS set to 0.*#
 * [tck-testable tck-id-payloads-ncmd-retain]#[yellow-background]*[tck-id-payloads-ncmd-retain] NCMD
 messages MUST be published with the MQTT retain flag set to false.*#
+* [tck-testable tck-id-payloads-ncmd-source-required]#[yellow-background]*[tck-id-payloads-ncmd-source-required] NCMD
+messages MUST include the overall payload 'source' value.*#
+* [tck-testable tck-id-payloads-ncmd-source-value]#[yellow-background]*[tck-id-payloads-ncmd-source-value] NCMD
+messages MUST have the overall payload 'source' value set to the Sparkplug Host Application ID that
+is publishing the NCMD message.*#
+* [tck-testable tck-id-payloads-ncmd-metric-source-required]#[yellow-background]*[tck-id-payloads-ncmd-metric-source-required] NCMD
+messages MAY include a metirc specific 'source' value if the Sparkplug Host Application is
+forwarding metric writes on behalf of another Host Application.*#
 
 The following is a representation of a simple NCMD message on the topic:
 
@@ -1747,7 +1766,8 @@ Consider the following Sparkplug B payload in the NCMD message shown above:
                 "timestamp": 1486144502122,
                 "dataType": "Boolean",
                 "value": true
-        }]
+        }],
+        "source": "IamHost"
 }
 ----
 
@@ -1770,6 +1790,14 @@ message MUST NOT include a sequence number.*#
 messages MUST be published with the MQTT QoS set to 0.*#
 * [tck-testable tck-id-payloads-dcmd-retain]#[yellow-background]*[tck-id-payloads-dcmd-retain] DCMD
 messages MUST be published with the MQTT retain flag set to false.*#
+* [tck-testable tck-id-payloads-dcmd-source-required]#[yellow-background]*[tck-id-payloads-dcmd-source-required] DCMD
+messages MUST include the overall payload 'source' value.*#
+* [tck-testable tck-id-payloads-dcmd-source-value]#[yellow-background]*[tck-id-payloads-dcmd-source-value] DCMD
+messages MUST have the overall payload 'source' value set to the Sparkplug Host Application ID that
+is publishing the DCMD message.*#
+* [tck-testable tck-id-payloads-dcmd-metric-source-required]#[yellow-background]*[tck-id-payloads-dcmd-metric-source-required] DCMD
+messages MAY include a metirc specific 'source' value if the Sparkplug Host Application is
+forwarding metric writes on behalf of another Host Application.*#
 
 The following is a representation of a simple DCMD message on the topic:
 
@@ -1797,7 +1825,8 @@ Consider the following Sparkplug B payload in the DCMD message shown above:
                 "timestamp": 1486144502122,
                 "dataType": "Boolean",
                 "value": true
-        }]
+        }],
+        "source": "IamHost"
 }
 ----
 
