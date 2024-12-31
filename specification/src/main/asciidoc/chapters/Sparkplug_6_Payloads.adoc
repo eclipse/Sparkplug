@@ -331,10 +331,11 @@ message Payload {
     optional uint64   timestamp     = 1;        // Timestamp at message sending time
     repeated Metric   metrics       = 2;        // Repeated forever - no limit in Google Protobufs
     optional uint64   seq           = 3;        // Message sequence number
-    optional string   source        = 4;        // Source for CMD and REBIRTH messages - the Host Application ID that sent the message
-    optional string   uuid          = 5;        // UUID to track message type in terms of schema definitions
-    optional bytes    body          = 6;        // To optionally bypass the whole definition above
-    extensions                      7 to max;   // For third party extensions
+    optional uint64   bd_seq        = 4;        // The Birth/Death sequence number for BIRTH and DEATH payloads
+    optional string   source        = 5;        // Source for CMD and REBIRTH messages - the Host Application ID that sent the message
+    optional string   uuid          = 6;        // UUID to track message type in terms of schema definitions
+    optional bytes    body          = 7;        // To optionally bypass the whole definition above
+    extensions                      8 to max;   // For third party extensions
 }
 ----
 
@@ -434,6 +435,19 @@ NBIRTH message from an Edge Node MUST always contain a sequence number between 0
 **** [tck-testable tck-id-payloads-sequence-num-incrementing]#[yellow-background]*[tck-id-payloads-sequence-num-incrementing] All
 subsequent messages after an NBIRTH from an Edge Node MUST contain a sequence number that is
 continually increasing by one in each message from that Edge Node until a value of
+18446744073709551615 (max value of a UINT64) is reached. At that point, the sequence number of the
+following message MUST be zero.*#
+** _seq_
+*** This is the birth/death sequence number which is an unsigned 64-bit integer.
+**** [tck-testable tck-id-payloads-bd-sequence-num-included]#[yellow-background]*[tck-id-payloads-bd-sequence-num-included] A
+birth/death sequence number MUST be included in the payload of every NBIRTH, NREBIRTH, and NDEATH
+Sparkplug MQTT message from an Edge Node.*#
+**** [tck-testable tck-id-payloads-sequence-num-req-nbirth]#[yellow-background]*[tck-id-payloads-sequence-num-zero-nbirth] Every
+birth/death sequence number included in the payload from an Edge Node MUST always be between 0 and
+18446744073709551615 (inclusive).*#
+**** [tck-testable tck-id-payloads-sequence-num-incrementing]#[yellow-background]*[tck-id-payloads-sequence-num-incrementing] All
+subsequent messages after an NBIRTH from an Edge Node MUST contain a birth/death sequence number
+that is continually increasing by one in each message from that Edge Node until a value of
 18446744073709551615 (max value of a UINT64) is reached. At that point, the sequence number of the
 following message MUST be zero.*#
 ** _source_
@@ -1099,7 +1113,7 @@ Edge Node Descriptor in any Sparkplug infrastructure MUST be unique in the syste
 NBIRTH message MUST include a sequence number and it MUST have a value between 0 and
 18446744073709551615 (inclusive).*#
 * [tck-testable tck-id-payloads-nbirth-bdseq]#[yellow-background]*[tck-id-payloads-nbirth-bdseq] Every
-NBIRTH message MUST include a bdSeq number metric.*#
+NBIRTH message MUST include a bdSeq number in the payload.*#
 * [tck-testable tck-id-payloads-nbirth-bdseq-repeat]#[yellow-background]*[tck-id-payloads-nbirth-bdseq-repeat] The
 bdSeq number value MUST match the bdSeq number value that was sent in the prior MQTT CONNECT packet
 WILL Message.*#
@@ -1136,11 +1150,6 @@ Consider the following Sparkplug B payload in the NBIRTH message shown above:
 {
         "timestamp": 1486144502122,
         "metrics": [{
-                "name": "bdSeq",
-                "timestamp": 1486144502122,
-                "dataType": "Int64",
-                "value": 0
-        }, {
                 "name": "Node Control/Reboot",
                 "timestamp": 1486144502122,
                 "dataType": "Boolean",
@@ -1186,7 +1195,8 @@ Consider the following Sparkplug B payload in the NBIRTH message shown above:
                 "dataType": "Float",
                 "value": 12.1
         }],
-        "seq": 0
+        "seq": 0,
+        "bdSeq": 0
 }
 ----
 
@@ -1222,10 +1232,10 @@ NREBIRTH message MUST include a sequence number that is the following value:*#
 *** pds = Next pending DATA publish seq number
 *** dc = Device count (number of Sparkplug Devices under the scope of the Edge Node)
 * [tck-testable tck-id-payloads-nrebirth-bdseq]#[yellow-background]*[tck-id-payloads-nrebirth-bdseq] Every
-NREBIRTH message MUST include a bdSeq number metric.*#
+NREBIRTH message MUST include a bdSeq number value specified in the payload.*#
 * [tck-testable tck-id-payloads-nrebirth-bdseq-repeat]#[yellow-background]*[tck-id-payloads-nrebirth-bdseq-repeat] The
-bdSeq number value MUST match the bdSeq number value that was sent in the prior MQTT CONNECT packet
-WILL Message.*#
+bdSeq number value MUST match the bdSeq number value that was sent in the immediately prior MQTT
+CONNECT packet WILL Message.*#
 ** Note if a new NREBIRTH is being sent, the Sparkplug Edge Node MQTT client MUST use the same bdSeq
 number in the payload that was sent in the prior MQTT CONNECT packet Will Message payload. This is
 because the NDEATH bdSeq number MUST always match the bdSeq number of the associated NBIRTH that is
@@ -1259,11 +1269,6 @@ Consider the following Sparkplug B payload in the NREBIRTH message shown above:
 {
         "timestamp": 1486144502122,
         "metrics": [{
-                "name": "bdSeq",
-                "timestamp": 1486144502122,
-                "dataType": "Int64",
-                "value": 0
-        }, {
                 "name": "Node Control/Reboot",
                 "timestamp": 1486144502122,
                 "dataType": "Boolean",
@@ -1309,7 +1314,8 @@ Consider the following Sparkplug B payload in the NREBIRTH message shown above:
                 "dataType": "Float",
                 "value": 12.1
         }],
-        "seq": 0
+        "seq": 0,
+        "bdSeq": 0
 }
 ----
 
@@ -1850,7 +1856,8 @@ NDEATH message MUST set the MQTT Will QoS to 1 in the MQTT CONNECT packet.*#
 * [tck-testable tck-id-payloads-ndeath-will-message-retain]#[yellow-background]*[tck-id-payloads-ndeath-will-message-retain] The
 NDEATH message MUST set the MQTT Will Retained flag to false in the MQTT CONNECT packet.*#
 * [tck-testable tck-id-payloads-ndeath-bdseq]#[yellow-background]*[tck-id-payloads-ndeath-bdseq] The
-NDEATH message MUST include the same bdSeq number value that will be used in the associated NBIRTH message.*#
+NDEATH message MUST include the same bdSeq number value that will be used in the associated NBIRTH
+message.*#
 ** This is used by Host Applications to correlate the NDEATH messages with a previously received NBIRTH
 message.
 ** It is important to note that any new CONNECT packet must increment the bdSeq number in the
@@ -1878,7 +1885,8 @@ Server.
 ** It should be noted that this timestamp is typically set at the time of the MQTT CONNECT message
 and as a result may not be useful to Host Applications. If the timestamp is set, Host Applications
 SHOULD NOT use it to determine corresponding NBIRTH messages. Instead, the bdSeq number used in the
-NBIRTH and NDEATH messages MUST be used to determine that an NDEATH matches a prior NBIRTH.
+NBIRTH, NREBIRTH, and NDEATH messages MUST be used to determine that an NDEATH matches a prior
+NBIRTH.
 
 The following is a representation of a NDEATH message on the topic:
 
@@ -1895,17 +1903,12 @@ Consider the following Sparkplug B payload in the NDEATH message shown above:
 ----
 {
         "timestamp": 1486144502122,
-        "metrics": [{
-                "name": "bdSeq",
-                "timestamp": 1486144502122,
-                "dataType": "UInt64",
-                "value": 0
-        }]
+        "bdSeq": 0
 }
 ----
 
-The payload metric named bdSeq allows a Host Application to reconcile this NDEATH with the NBIRTH
-that occurred previously.
+The bdSeq number value in the payload allows a Host Application to reconcile this NDEATH with the
+NBIRTH and/or NREBIRTH that occurred previously.
 
 [[payloads_b_ddeath]]
 ==== DDEATH

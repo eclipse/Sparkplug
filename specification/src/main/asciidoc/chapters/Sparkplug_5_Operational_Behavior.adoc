@@ -181,11 +181,11 @@ Edge Node*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-will-message-payload]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-will-message-payload] The
 Edge Node's MQTT Will Message's payload MUST be a Sparkplug Google Protobuf encoded payload.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-will-message-payload-bdSeq]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-will-message-payload-bdSeq] The
-Edge Node's MQTT Will Message's payload MUST include a metric with the name of 'bdSeq', the datatype
-of INT64, and the value MUST be incremented by one from the value in the previous MQTT CONNECT
-packet unless the value would be greater than 18446744073709551615 (max value of a UINT64). If in
-the previous NBIRTH a value of 18446744073709551615 was sent, the next MQTT Connect packet Will
-Message payload bdSeq number value MUST have a value of 0.*#
+Edge Node's MQTT Will Message's payload MUST include a bdSeq number in the payload and the value
+MUST be incremented by one from the value in the previous MQTT CONNECT packet unless the value would
+be greater than 18446744073709551615 (max value of a UINT64). If in the previous NBIRTH a value of
+18446744073709551615 was sent, the next MQTT Connect packet Will Message payload bdSeq number value
+MUST have a value of 0.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-will-message-qos]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-will-message-qos] The
 Edge Node's MQTT Will Message's MQTT QoS MUST be 1.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-will-message-will-retained]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-will-message-will-retained] The
@@ -228,8 +228,8 @@ Node*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-nbirth-payload]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-nbirth-payload] The
 Edge Node's NBIRTH payload MUST be a Sparkplug Google Protobuf encoded payload.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-nbirth-payload-bdSeq]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-nbirth-payload-bdSeq] The
-Edge Node's NBIRTH payload MUST include a metric with the name of 'bdSeq' the datatype of INT64 and
-the value MUST be the same as the previous MQTT CONNECT packet.*#
+Edge Node's NBIRTH payload MUST include a bdSeq number in the payload and the value MUST be the same
+as the bdSeq number value specified in the immediately previous MQTT CONNECT packet.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-nbirth-qos]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-nbirth-qos] The
 Edge Node's NBIRTH MQTT QoS MUST be 0.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-nbirth-retained]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-nbirth-retained] The
@@ -287,19 +287,19 @@ show the Edge Node in an 'online' state once it publishes its NBIRTH and DBIRTH 
 
 . If at any point in time the Edge Node MQTT Client loses connectivity to the defined MQTT
 Server(s), a Death Certificate (NDEATH) is issued by the MQTT Server on behalf of the Edge Node.
-Upon receipt of the Death Certificate with a bdSeq number metric that matches the preceding bdSeq
-number in the NBIRTH messages, the Primary Host Application should set the state of the Edge Node
-to ‘online=false’ and update all metric timestamps related to this Edge Node to 'now' using its own
+Upon receipt of the Death Certificate with a bdSeq number that matches the preceding bdSeq number in
+the NBIRTH messages, the Primary Host Application should set the state of the Edge Node to
+‘online=false’ and update all metric timestamps related to this Edge Node to 'now' using its own
 system clock. Any defined metrics will be set to a STALE data quality.
 
 .. The bdSeq number is used to correlate an NBIRTH with a NDEATH. Because the NDEATH is included in
 the MQTT CONNECT packet, its timestamp (if included) is not useful to Sparkplug Host Applications.
-Instead, a bdSeq number must be included as a metric in the payload of the NDEATH. The same bdSeq
-number metric value must also be included in the NBIRTH message published immediately after the MQTT
-CONNECT. This allows Host Applications to know that a NDEATH matches a specific NBIRTH message. This
-is required because timing with Will Messages may result in NDEATH messages arriving after a
-new/next NBIRTH message. The bdSeq number allows Host Applications to know when it must consider the
-Edge Node offline.
+Instead, a bdSeq number must be included in the payload of the NDEATH. The same bdSeq number value
+must also be included in the NBIRTH message payload published immediately after the MQTT CONNECT.
+This allows Host Applications to know that a NDEATH matches a specific NBIRTH message. This is
+required because timing with Will Messages may result in NDEATH messages arriving after a new/next
+NBIRTH message. The bdSeq number allows Host Applications to know when it must consider the Edge
+Node offline.
 
 [[operational_behavior_edge_node_session_termination]]
 === Edge Node Session Termination
@@ -977,8 +977,8 @@ an Edge Node receives a Rebirth Request, it MUST immediately pause sending of DA
 an Edge Node stops sending DATA messages, it MUST send a complete REBIRTH sequence including the
 NREBIRTH and DREBIRTH(s) if applicable.*#
 * [tck-testable tck-id-operational-behavior-rebirth-action-3]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-3] The
-NREBIRTH MUST include the same bdSeq metric with the same value it had included in the Will Message
-of the previous MQTT CONNECT packet.*#
+NREBIRTH MUST include the same bdSeq number in the payload with the same value it had included in
+the Will Message of the immediately previous MQTT CONNECT packet.*#
 ** Because a new MQTT Session is not being established, there is no reason to update the bdSeq number
 * [tck-testable tck-id-operational-behavior-rebirth-action-4]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-4] The
 NREBIRTH payload MUST use a seq number that specified to integrate into the existing DATA stream
