@@ -86,7 +86,7 @@ timer.
 === Birth and Death Certificates
 
 Birth and Death Certificates are used by both Edge Nodes and Host Applications. Death Certificates
-for both are always registered in the MQTT CONNECT packet as the MQTT Will Message. By using the
+for both, are always registered in the MQTT CONNECT packet as the MQTT Will Message. By using the
 MQTT Will message, the Death Certificates will be delivered to subscribers even if the MQTT client
 connection is lost ungracefully. For Edge Nodes, the Death Certificate uses the NDEATH Sparkplug
 verb in the topic. For Host Applications, the spBv1.0/STATE/sparkplug_host_id topic is used. More

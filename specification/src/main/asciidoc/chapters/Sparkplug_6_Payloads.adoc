@@ -289,22 +289,26 @@ message Payload {
         optional string file_type       = 6;        // File type (i.e. xml, json, txt, cpp, etc)
         optional string md5             = 7;        // md5 of data
 
-        // Catchalls and future expansion
+        // Others
         optional string description     = 8;        // Could be anything such as json or xml of custom properties
+        optional string engUnit         = 9;        // Engineering units
+
+        // Future expansion
         extensions                      9 to max;
     }
 
     message Metric {
 
-        optional string   name          = 1;        // Metric name - should only be included on birth
-        optional uint64   alias         = 2;        // Metric alias - tied to name on birth and included in all later DATA messages
-        optional uint64   timestamp     = 3;        // Timestamp associated with data acquisition time
+        optional string   name          = 1;        // Metric name - Required in BIRTH messages, optional in DATA messages if using aliases
+        optional uint64   alias         = 2;        // Metric alias - tied to name on BIRTH and included in all later DATA messages
+        optional uint64   timestamp     = 3;        // Timestamp associated with data acquisition time - if omitted, the overall payload timestamp is assumed as the data acquisition time
         optional uint32   datatype      = 4;        // DataType of the metric/tag value
-        optional bool     is_historical = 5;        // If this is historical data and should not update real time tag
-        optional bool     is_transient  = 6;        // Tells consuming clients such as MQTT Engine to not store this as a tag
-        optional bool     is_null       = 7;        // If this is null - explicitly say so rather than using -1, false, etc for some datatypes.
-        optional MetaData metadata      = 8;        // Metadata for the payload
-        optional PropertySet properties = 9;
+        optional string   source        = 5;        // Source for CMD messages if unique to the Metric (typically for forwarded writes in CMD messages)
+        optional bool     is_historical = 6;        // If this is historical data and should not update real time tag
+        optional bool     is_transient  = 7;        // Tells consuming clients such as MQTT Engine to not store this as a tag
+        optional bool     is_null       = 8;        // If this is null - explicitly say so rather than using -1, false, etc for some datatypes.
+        optional MetaData metadata      = 9;        // Metadata for the payload
+        optional PropertySet properties = 10;
 
         oneof value {
             uint32   int_value                      = 10;
@@ -326,10 +330,12 @@ message Payload {
 
     optional uint64   timestamp     = 1;        // Timestamp at message sending time
     repeated Metric   metrics       = 2;        // Repeated forever - no limit in Google Protobufs
-    optional uint64   seq           = 3;        // Sequence number
-    optional string   uuid          = 4;        // UUID to track message type in terms of schema definitions
-    optional bytes    body          = 5;        // To optionally bypass the whole definition above
-    extensions                      6 to max;   // For third party extensions
+    optional uint64   seq           = 3;        // Message sequence number
+    optional uint64   bd_seq        = 4;        // The Birth/Death sequence number for BIRTH and DEATH payloads
+    optional string   source        = 5;        // Source for CMD and REBIRTH messages - the Host Application ID that sent the message
+    optional string   uuid          = 6;        // UUID to track message type in terms of schema definitions
+    optional bytes    body          = 7;        // To optionally bypass the whole definition above
+    extensions                      8 to max;   // For third party extensions
 }
 ----
 
@@ -404,14 +410,14 @@ following definitions explain the components that make up a payload.
 ==== Payload
 
 A Sparkplug B payload is the top-level component that is encoded and used in an MQTT message. It
-contains some basic information such as a timestamp and a sequence number as well as an array of
-metrics which contain key/value pairs of data. A Sparkplug B payload includes the following
-components.
+contains some basic information such as an overall payload timestamp and a sequence number as well
+as an array of metrics which contain key/value pairs of data. A Sparkplug B payload includes the
+following components.
 
 * *payload*
 ** _timestamp_
 *** This is the timestamp in the form of an unsigned 64-bit integer representing the number of
-milliseconds since epoch (Jan 1, 1970).
+nanoseconds since epoch (Jan 1, 1970).
 *** [tck-testable tck-id-payloads-timestamp-in-UTC]#[yellow-background]*[tck-id-payloads-timestamp-in-UTC] This
 timestamp MUST be in UTC.*#
 *** This timestamp represents the time at which the message was published.
@@ -424,12 +430,35 @@ link:#payloads_b_metric[here].
 sequence number MUST be included in the payload of every Sparkplug MQTT message from an Edge Node
 except NDEATH messages.*#
 **** [tck-testable tck-id-payloads-sequence-num-req-nbirth]#[yellow-background]*[tck-id-payloads-sequence-num-zero-nbirth] A
-NBIRTH message from an Edge Node MUST always contain a sequence number between 0 and 255
-(inclusive).*#
+NBIRTH message from an Edge Node MUST always contain a sequence number between 0 and
+18446744073709551615 (inclusive).*#
 **** [tck-testable tck-id-payloads-sequence-num-incrementing]#[yellow-background]*[tck-id-payloads-sequence-num-incrementing] All
 subsequent messages after an NBIRTH from an Edge Node MUST contain a sequence number that is
-continually increasing by one in each message from that Edge Node until a value of 255 is reached.
-At that point, the sequence number of the following message MUST be zero.*#
+continually increasing by one in each message from that Edge Node until a value of
+18446744073709551615 (max value of a UINT64) is reached. At that point, the sequence number of the
+following message MUST be zero.*#
+** _seq_
+*** This is the birth/death sequence number which is an unsigned 64-bit integer.
+**** [tck-testable tck-id-payloads-bd-sequence-num-included]#[yellow-background]*[tck-id-payloads-bd-sequence-num-included] A
+birth/death sequence number MUST be included in the payload of every NBIRTH, NREBIRTH, and NDEATH
+Sparkplug MQTT message from an Edge Node.*#
+**** [tck-testable tck-id-payloads-sequence-num-req-nbirth]#[yellow-background]*[tck-id-payloads-sequence-num-zero-nbirth] Every
+birth/death sequence number included in the payload from an Edge Node MUST always be between 0 and
+18446744073709551615 (inclusive).*#
+**** [tck-testable tck-id-payloads-sequence-num-incrementing]#[yellow-background]*[tck-id-payloads-sequence-num-incrementing] All
+subsequent messages after an NBIRTH from an Edge Node MUST contain a birth/death sequence number
+that is continually increasing by one in each message from that Edge Node until a value of
+18446744073709551615 (max value of a UINT64) is reached. At that point, the sequence number of the
+following message MUST be zero.*#
+** _source_
+*** This is the source field which represents the Sparkplug Host Application ID of the publisher for
+NCMD, DCMD, and REBIRTH messages
+**** [tck-testable tck-id-payloads-source-always-included]#[yellow-background]*[tck-id-payloads-source-always-included] A
+source MUST be included in the payload of every NCMD, DCMD, and REBIRTH Sparkplug MQTT message from
+a Sparkplug Host Application.*#
+**** [tck-testable tck-id-payloads-source-value]#[yellow-background]*[tck-id-payloads-source-value] The
+source value, when required, MUST have a value that is the Host Application ID of the publisher of the
+message.*#
 ** _uuid_
 *** This is a field which can be used to represent a schema or some other specific form of the
 message. Example usage would be to supply a UUID which represents an encoding mechanism of the
@@ -471,15 +500,21 @@ and DBIRTH messages MUST include both a metric name and alias.*#
 DDATA, NCMD, and DCMD messages MUST only include an alias and the metric name MUST be excluded.*#
 * *timestamp*
 ** This is the timestamp in the form of an unsigned 64-bit integer representing the number of
-milliseconds since epoch (Jan 1, 1970).
+nanoseconds since epoch (Jan 1, 1970).
 ** [tck-testable tck-id-payloads-name-birth-data-requirement]#[yellow-background]*[tck-id-payloads-name-birth-data-requirement] The
-timestamp MUST be included with every metric in all NBIRTH, DBIRTH, NDATA, and DDATA messages.*#
+timestamp MAY be included with every metric in all NBIRTH, DBIRTH, NDATA, and DDATA messages.*#
+*** If the timestamp is omitted from the Metric definition, the overall payload timestamp MUST be
+assumed as the data acquisition time.
+*** Non-normative comment: This timestamp represents the time at which the value of a metric was
+acquired for message types of NBIRTH, NREBIRTH, NDATA, NBIRTH, DREBIRTH, and DDATA.
 ** [tck-testable tck-id-payloads-name-cmd-requirement]#[yellow-background]*[tck-id-payloads-name-cmd-requirement] The
 timestamp MAY be included with metrics in NCMD and DCMD messages.*#
-** [tck-testable tck-id-payloads-metric-timestamp-in-UTC]#[yellow-background]*[tck-id-payloads-metric-timestamp-in-UTC] The
-timestamp MUST be in UTC.*#
+*** If the timestamp is omitted from the Metric definition, the overall payload timestamp MUST be
+assumed as the write time.
 *** Non-normative comment: This timestamp represents the time at which the value of a metric was
-captured.
+written to on the Host Application for NCMD and DCMD messages.
+** [tck-testable tck-id-payloads-metric-timestamp-in-UTC]#[yellow-background]*[tck-id-payloads-metric-timestamp-in-UTC] The
+timestamp MUST be in UTC if it is included.*#
 * *datatype*
 ** [tck-testable tck-id-payloads-metric-datatype-value-type]#[yellow-background]*[tck-id-payloads-metric-datatype-value-type] The
 datatype MUST be an unsigned 32-bit integer representing the datatype.*#
@@ -490,6 +525,13 @@ link:#payloads_b_datatypes[valid Sparkplug Data Types].*#
 datatype MUST be included with each metric definition in NBIRTH and DBIRTH messages.*#
 ** [tck-testable tck-id-payloads-metric-datatype-not-req]#[yellow-background]*[tck-id-payloads-metric-datatype-not-req] The
 datatype SHOULD NOT be included with metric definitions in NDATA, NCMD, DDATA, and DCMD messages.*#
+* *source*
+** This is the source field which represents the Sparkplug Host Application ID of the publisher for
+NCMD, DCMD, and REBIRTH messages if it differs from the overall payload source value. This may be
+used if the Sparkplug Host Application is forwarding writes on behalf of another Host Application.
+** [tck-testable tck-id-payloads-source-metric-included]#[yellow-background]*[tck-id-payloads-source-metric-included] A
+source MAY be included if the source for this metric value differs from the overall payload source
+value.*#
 * *is_historical*
 ** This is a Boolean flag which denotes whether this metric represents a historical value. In some
 cases, it may be desirable to send metrics after they were acquired from a device or Edge Node. This
@@ -921,7 +963,7 @@ enum DataType {
 *** Google Protocol Buffer Type: string
 *** Sparkplug enum value: 12
 * _DateTime_
-** Date time value as uint64 value representing milliseconds since epoch (Jan 1, 1970)
+** Date time value as uint64 value representing nanoseconds since epoch (Jan 1, 1970)
 ** Google Protocol Buffer Type: uint64
 ** Sparkplug enum value: 13
 * _Text_
@@ -1040,10 +1082,10 @@ ends on a byte boundary.
 *** Example (string array to Metric bytes_value): [ABC, hello] -> [0x41, 0x42, 0x43, 0x00, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00]
 ** _DateTimeArray_
 *** DateTimeArray as an array of packed little endian bytes where each Datetime value is an 8-byte
-value representing the number of milliseconds since epoch in UTC
+value representing the number of nanoseconds since epoch in UTC
 *** Google Protocol Buffer Type: bytes
 *** Sparkplug enum value: 34
-*** Example (DateTime array -> ms since epoch -> Metric bytes_value): ['Wednesday, October 21, 2009 5:27:55.335 AM', 'Friday, June 24, 2022 9:57:55 PM'] -> [1256102875335, 1656107875000] -> [0xC7, 0xD0, 0x90, 0x75, 0x24, 0x01, 0x00, 0x00, 0xB8, 0xBA, 0xB8, 0x97, 0x81, 0x01, 0x00, 0x00]
+*** Example (DateTime array -> nanoseconds since epoch -> Metric bytes_value): ['Wednesday, October 21, 2009 5:27:55.335 AM', 'Friday, June 24, 2022 9:57:55 PM'] -> [1256102875335000000, 1656107875000000000] -> [0xC0, 0x7F, 0xB0, 0xF5, 0xE8, 0x92, 0x6E, 0x11, 0x00, 0x1E, 0x1A, 0x7F, 0x56, 0xAD, 0xFB, 0x16]
 
 [[payloads_payload_representation_on_host_applications]]
 ==== Payload Representation on Host Applications
@@ -1062,28 +1104,28 @@ subsequently sent for that given MQTT Session. These are can be found in the
 link:#operational_behavior_edge_node_session_establishment[Edge Node Session Establishment Section]
 
 * [tck-testable tck-id-payloads-nbirth-timestamp]#[yellow-background]*[tck-id-payloads-nbirth-timestamp] NBIRTH
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-nbirth-edge-node-descriptor]#[yellow-background]*[tck-id-payloads-nbirth-edge-node-descriptor] Every
 Edge Node Descriptor in any Sparkplug infrastructure MUST be unique in the system.*#
 ** These are used like addresses and need to be unique as a result.
 * [tck-testable tck-id-payloads-nbirth-seq]#[yellow-background]*[tck-id-payloads-nbirth-seq] Every
-NBIRTH message MUST include a sequence number and it MUST have a value between 0 and 255
-(inclusive).*#
+NBIRTH message MUST include a sequence number and it MUST have a value between 0 and
+18446744073709551615 (inclusive).*#
 * [tck-testable tck-id-payloads-nbirth-bdseq]#[yellow-background]*[tck-id-payloads-nbirth-bdseq] Every
-NBIRTH message MUST include a bdSeq number metric.*#
+NBIRTH message MUST include a bdSeq number in the payload.*#
 * [tck-testable tck-id-payloads-nbirth-bdseq-repeat]#[yellow-background]*[tck-id-payloads-nbirth-bdseq-repeat] The
 bdSeq number value MUST match the bdSeq number value that was sent in the prior MQTT CONNECT packet
 WILL Message.*#
-** Note if a new NBIRTH is being sent (due to a Rebirth request or ant other reason) the Sparkplug
-Edge Node MQTT client MUST publish the same bdSeq number that was sent in the prior MQTT CONNECT
-packet Will Message payload. This is because the NDEATH bdSeq number MUST always match the bdSeq
-number of the associated NBIRTH that is stored in the MQTT Server via the MQTT Will Message.
+** Note if a new NBIRTH is being sent for any reason, the Sparkplug Edge Node MQTT client MUST use
+the same bdSeq number in the payload that was sent in the prior MQTT CONNECT packet Will Message
+payload. This is because the NDEATH bdSeq number MUST always match the bdSeq number of the
+associated NBIRTH that is stored in the MQTT Server via the MQTT Will Message.
 * [tck-testable tck-id-payloads-nbirth-rebirth-req]#[yellow-background]*[tck-id-payloads-nbirth-rebirth-req] Every
-NBIRTH MUST include a metric with the name 'Node Control/Rebirth' and have a boolean value of
-false.*#
-** This is used by Host Applications to force an Edge Node to send a new birth sequence (NBIRTH and
-DBIRTH messages) if errors are detected by the Host Application in the data stream.
+NBIRTH message MUST include a metric with the name 'Node Control/Rebirth' and have a boolean value
+of false.*#
+** This is used by Host Applications to force an Edge Node to send a new birth sequence (NREBIRTH
+and DREBIRTH messages) if errors are detected by a Host Application in the data stream.
 * [tck-testable tck-id-payloads-nbirth-qos]#[yellow-background]*[tck-id-payloads-nbirth-qos] NBIRTH
 messages MUST be published with the MQTT QoS set to 0.*#
 * [tck-testable tck-id-payloads-nbirth-retain]#[yellow-background]*[tck-id-payloads-nbirth-retain] NBIRTH
@@ -1108,11 +1150,6 @@ Consider the following Sparkplug B payload in the NBIRTH message shown above:
 {
         "timestamp": 1486144502122,
         "metrics": [{
-                "name": "bdSeq",
-                "timestamp": 1486144502122,
-                "dataType": "Int64",
-                "value": 0
-        }, {
                 "name": "Node Control/Reboot",
                 "timestamp": 1486144502122,
                 "dataType": "Boolean",
@@ -1158,7 +1195,127 @@ Consider the following Sparkplug B payload in the NBIRTH message shown above:
                 "dataType": "Float",
                 "value": 12.1
         }],
-        "seq": 0
+        "seq": 0,
+        "bdSeq": 0
+}
+----
+
+This would result in a structure as follows on the Host Application.
+
+.Figure 10 – Sparkplug B Metric Structure 1
+plantuml::{assetsdir}assets/plantuml/sparkplugb-metric-structure-1.puml[format=svg, alt="Sparkplug B Metric Structure 1"]
+
+[[payloads_b_nbirth]]
+==== NREBIRTH
+
+The NREBIRTH is responsible for informing a specific host application of all of the information
+about the Edge Node. This includes every metric it will publish data for in the future.
+
+There is a dependency on the MQTT CONNECT packet with regard to NREBIRTH messages that are
+subsequently sent for that given MQTT Session. These are can be found in the 
+link:#operational_behavior_edge_node_session_establishment[Edge Node Session Establishment Section]
+
+* [tck-testable tck-id-payloads-nrebirth-timestamp]#[yellow-background]*[tck-id-payloads-nrebirth-timestamp] NREBIRTH
+messages MUST include an overall payload timestamp that denotes the time at which the message was
+published.*#
+* [tck-testable tck-id-payloads-nrebirth-edge-node-descriptor]#[yellow-background]*[tck-id-payloads-nrebirth-edge-node-descriptor] Every
+Edge Node Descriptor in any Sparkplug infrastructure MUST be unique in the system.*#
+** These are used like addresses and need to be unique as a result.
+* [tck-testable tck-id-payloads-nrebirth-seq-1]#[yellow-background]*[tck-id-payloads-nrebirth-seq-1] Every
+NREBIRTH message MUST include a sequence number and it MUST have a value between 0 and
+18446744073709551615 (inclusive).*#
+* [tck-testable tck-id-payloads-nrebirth-seq-2]#[yellow-background]*[tck-id-payloads-nrebirth-seq-2] Every
+NREBIRTH message MUST include a sequence number that is the following value:*#
+** rsn = pds - (1 + dc)
+** If the rsn results in a negative number, add 18446744073709551615 (max value of a UINT64) to it.
+*** rsn = Rebirth Sequence Number value
+*** pds = Next pending DATA publish seq number
+*** dc = Device count (number of Sparkplug Devices under the scope of the Edge Node)
+* [tck-testable tck-id-payloads-nrebirth-bdseq]#[yellow-background]*[tck-id-payloads-nrebirth-bdseq] Every
+NREBIRTH message MUST include a bdSeq number value specified in the payload.*#
+* [tck-testable tck-id-payloads-nrebirth-bdseq-repeat]#[yellow-background]*[tck-id-payloads-nrebirth-bdseq-repeat] The
+bdSeq number value MUST match the bdSeq number value that was sent in the immediately prior MQTT
+CONNECT packet WILL Message.*#
+** Note if a new NREBIRTH is being sent, the Sparkplug Edge Node MQTT client MUST use the same bdSeq
+number in the payload that was sent in the prior MQTT CONNECT packet Will Message payload. This is
+because the NDEATH bdSeq number MUST always match the bdSeq number of the associated NBIRTH that is
+stored in the MQTT Server via the MQTT Will Message.
+* [tck-testable tck-id-payloads-nrebirth-rebirth-req]#[yellow-background]*[tck-id-payloads-nrebirth-rebirth-req] Every
+NREBIRTH message MUST include a metric with the name 'Node Control/Rebirth' and have a boolean value
+of false.*#
+** This is used by Host Applications to force an Edge Node to send a new birth sequence (NREBIRTH
+and DREBIRTH messages) if errors are detected by a Host Application in the data stream.
+* [tck-testable tck-id-payloads-nrebirth-qos]#[yellow-background]*[tck-id-payloads-nrebirth-qos] NREBIRTH
+messages MUST be published with the MQTT QoS set to 0.*#
+* [tck-testable tck-id-payloads-nrebirth-retain]#[yellow-background]*[tck-id-payloads-nrebirth-retain] NREBIRTH
+messages MUST be published with the MQTT retain flag set to false.*#
+
+The following is a representation of a simple NREBIRTH message on the topic:
+
+----
+spBv1.0/Sparkplug B Devices/NREBIRTH/Raspberry Pi
+----
+
+In the topic above the following information is known based on the Sparkplug topic definition:
+
+* The ‘Group ID’ is: Sparkplug B Devices
+* The ‘Edge Node ID’ is: Raspberry Pi
+* The 'Edge Node Descriptor' is the combination of the Group ID and Edge Node ID.
+* This is an NREBIRTH message based on the 'NREBIRTH' Sparkplug Verb
+
+Consider the following Sparkplug B payload in the NREBIRTH message shown above:
+
+----
+{
+        "timestamp": 1486144502122,
+        "metrics": [{
+                "name": "Node Control/Reboot",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Node Control/Rebirth",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Node Control/Next Server",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Node Control/Scan Rate",
+                "timestamp": 1486144502122,
+                "dataType": "Int64",
+                "value": 3000
+        }, {
+                "name": "Properties/Hardware Make",
+                "timestamp": 1486144502122,
+                "dataType": "String",
+                "value": "Raspberry Pi"
+        }, {
+                "name": "Properties/Hardware Model",
+                "timestamp": 1486144502122,
+                "dataType": "String",
+                "value": "Pi 3 Model B"
+        }, {
+                "name": "Properties/OS",
+                "timestamp": 1486144502122,
+                "dataType": "String",
+                "value": "Raspbian"
+        }, {
+                "name": "Properties/OS Version",
+                "timestamp": 1486144502122,
+                "dataType": "String",
+                "value": "Jessie with PIXEL/11.01.2017"
+        }, {
+                "name": "Supply Voltage",
+                "timestamp": 1486144502122,
+                "dataType": "Float",
+                "value": 12.1
+        }],
+        "seq": 0,
+        "bdSeq": 0
 }
 ----
 
@@ -1174,14 +1331,15 @@ The DBIRTH is responsible for informing the Host Application of all of the infor
 device. This includes every metric it will publish data for in the future.
 
 * [tck-testable tck-id-payloads-dbirth-timestamp]#[yellow-background]*[tck-id-payloads-dbirth-timestamp] DBIRTH
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-dbirth-seq]#[yellow-background]*[tck-id-payloads-dbirth-seq] Every
 DBIRTH message MUST include a sequence number.*#
 * [tck-testable tck-id-payloads-dbirth-seq-inc]#[yellow-background]*[tck-id-payloads-dbirth-seq-inc] Every
 DBIRTH message MUST include a sequence number value that is one greater than the previous sequence
-number sent by the Edge Node. This value MUST never exceed 255. If in the previous sequence number
-sent by the Edge Node was 255, the next sequence number sent MUST have a value of 0.*#
+number sent by the Edge Node. This value MUST never exceed 18446744073709551615 (max value of a
+UINT64). If in the previous sequence number sent by the Edge Node was 18446744073709551615, the next
+sequence number sent MUST have a value of 0.*#
 * [tck-testable tck-id-payloads-dbirth-order]#[yellow-background]*[tck-id-payloads-dbirth-order] All
 DBIRTH messages sent by an Edge Node MUST be sent immediately after the NBIRTH and before any NDATA
 or DDATA messages are published by the Edge Node.*#
@@ -1288,6 +1446,128 @@ This would result in a structure as follows on the Host Application.
 .Figure 11 – Sparkplug B Metric Structure 2
 plantuml::{assetsdir}assets/plantuml/sparkplugb-metric-structure-2.puml[format=svg, alt="Sparkplug B Metric Structure 2"]
 
+[[payloads_b_drebirth]]
+==== DREBIRTH
+
+The DREBIRTH is responsible for informing a Host Application that is requesting a rebirth of all of
+the information about the device. This includes every metric it will publish data for in the future.
+
+* [tck-testable tck-id-payloads-drebirth-timestamp]#[yellow-background]*[tck-id-payloads-drebirth-timestamp] DREBIRTH
+messages MUST include an overall payload timestamp that denotes the time at which the message was
+published.*#
+* [tck-testable tck-id-payloads-drebirth-seq]#[yellow-background]*[tck-id-payloads-drebirth-seq] Every
+DREBIRTH message MUST include a sequence number.*#
+* [tck-testable tck-id-payloads-drebirth-seq-inc]#[yellow-background]*[tck-id-payloads-drebirth-seq-inc] Every
+DREBIRTH message MUST include a sequence number value that is one greater than the previous sequence
+number sent by the Edge Node. This value MUST never exceed 18446744073709551615 (max value of a
+UINT64). If in the previous sequence number sent by the Edge Node was 18446744073709551615, the next
+sequence number sent MUST be a value of 0.*#
+* [tck-testable tck-id-payloads-drebirth-order]#[yellow-background]*[tck-id-payloads-drebirth-order] All
+DREBIRTH messages sent by an Edge Node MUST be sent immediately after the NREBIRTH and before any
+NDATA or DDATA messages are published by the Edge Node.*#
+* [tck-testable tck-id-payloads-drebirth-qos]#[yellow-background]*[tck-id-payloads-drebirth-qos] DREBIRTH
+messages MUST be published with the MQTT QoS set to 0.*#
+* [tck-testable tck-id-payloads-drebirth-retain]#[yellow-background]*[tck-id-payloads-drebirth-retain] DREBIRTH
+messages MUST be published with the MQTT retain flag set to false.*#
+
+The following is a representation of a simple DREBIRTH message on the topic:
+
+----
+spBv1.0/Sparkplug B Devices/DREBIRTH/Raspberry Pi/Pibrella
+----
+
+In the topic above the following information is known based on the Sparkplug topic definition:
+
+* The ‘Group ID’ is: Sparkplug B Devices
+* The ‘Edge Node ID’ is: Raspberry Pi
+* The ‘Device ID’ is: Pibrella
+* This is a DREBIRTH message based on the 'DREBIRTH' Sparkplug Verb
+
+Consider the following Sparkplug B payload in the DREBIRTH message shown above:
+
+----
+{
+        "timestamp": 1486144502122,
+        "metrics": [{
+                "name": "Inputs/A",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Inputs/B",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Inputs/C",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Inputs/D",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Inputs/Button",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Outputs/E",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Outputs/F",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Outputs/G",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Outputs/H",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Outputs/LEDs/Green",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Outputs/LEDs/Red",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Outputs/LEDs/Yellow",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Outputs/Buzzer",
+                "timestamp": 1486144502122,
+                "dataType": "Boolean",
+                "value": false
+        }, {
+                "name": "Properties/Hardware Make",
+                "timestamp": 1486144502122,
+                "dataType": "String",
+                "value": "Pibrella"
+        }],
+        "seq": 1
+}
+----
+
+This would result in a structure as follows on the Host Application.
+
+.Figure 11 – Sparkplug B Metric Structure 2
+plantuml::{assetsdir}assets/plantuml/sparkplugb-metric-structure-2.puml[format=svg, alt="Sparkplug B Metric Structure 2"]
+
 [[payloads_b_ndata]]
 ==== NDATA
 
@@ -1300,14 +1580,15 @@ an ordered List of metrics, multiple different change events for multiple differ
 be included in a single NDATA message.
 
 * [tck-testable tck-id-payloads-ndata-timestamp]#[yellow-background]*[tck-id-payloads-ndata-timestamp] NDATA
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-ndata-seq]#[yellow-background]*[tck-id-payloads-ndata-seq] Every
 NDATA message MUST include a sequence number.*#
 * [tck-testable tck-id-payloads-ndata-seq-inc]#[yellow-background]*[tck-id-payloads-ndata-seq-inc] Every
 NDATA message MUST include a sequence number value that is one greater than the previous sequence
-number sent by the Edge Node. This value MUST never exceed 255. If in the previous sequence number
-sent by the Edge Node was 255, the next sequence number sent MUST have a value of 0.*#
+number sent by the Edge Node. This value MUST never exceed 18446744073709551615 (max value of a
+UINT64). If in the previous sequence number sent by the Edge Node was 18446744073709551615, the next
+sequence number sent MUST have a value of 0.*#
 * [tck-testable tck-id-payloads-ndata-order]#[yellow-background]*[tck-id-payloads-ndata-order] All
 NDATA messages sent by an Edge Node MUST NOT be sent until all the NBIRTH and all DBIRTH messages
 have been published by the Edge Node.*#
@@ -1357,14 +1638,15 @@ multiple different change events for multiple different metrics can all be inclu
 DDATA message.
 
 * [tck-testable tck-id-payloads-ddata-timestamp]#[yellow-background]*[tck-id-payloads-ddata-timestamp] DDATA
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-ddata-seq]#[yellow-background]*[tck-id-payloads-ddata-seq] Every
 DDATA message MUST include a sequence number.*#
 * [tck-testable tck-id-payloads-ddata-seq-inc]#[yellow-background]*[tck-id-payloads-ddata-seq-inc] Every
 DDATA message MUST include a sequence number value that is one greater than the previous sequence
-number sent by the Edge Node. This value MUST never exceed 255. If in the previous sequence number
-sent by the Edge Node was 255, the next sequence number sent MUST have a value of 0.*#
+number sent by the Edge Node. This value MUST never exceed 18446744073709551615 (max value of a
+UINT64). If in the previous sequence number sent by the Edge Node was 18446744073709551615, the next
+sequence number sent MUST have a value of 0.*#
 * [tck-testable tck-id-payloads-ddata-order]#[yellow-background]*[tck-id-payloads-ddata-order] All
 DDATA messages sent by an Edge Node MUST NOT be sent until all the NBIRTH and all DBIRTH messages
 have been published by the Edge Node.*#
@@ -1405,6 +1687,47 @@ Consider the following Sparkplug B payload in the DDATA message shown above:
 This would result in the Host Application updating the value of the ‘Inputs/A’ metric and ‘Inputs/C’ 
 metric.
 
+[[payloads_b_rebirth]]
+==== REBIRTH
+
+REBIRTH messages are used by Host Applications to resync with an Edge Nodes existing data stream.
+
+* [tck-testable tck-id-payloads-rebirth-timestamp]#[yellow-background]*[tck-id-payloads-rebirth-timestamp] REBIRTH
+messages MUST include an overall payload timestamp that denotes the time at which the message was
+published.*#
+* [tck-testable tck-id-payloads-rebirth-seq]#[yellow-background]*[tck-id-payloads-rebirth-seq] Every
+REBIRTH message MUST NOT include a sequence number.*#
+* [tck-testable tck-id-payloads-rebirth-qos]#[yellow-background]*[tck-id-payloads-rebirth-qos] REBIRTH
+messages MUST be published with the MQTT QoS set to 0.*#
+* [tck-testable tck-id-payloads-rebirth-retain]#[yellow-background]*[tck-id-payloads-rebirth-retain] REBIRTH
+messages MUST be published with the MQTT retain flag set to false.*#
+* [tck-testable tck-id-payloads-rebirth-source]#[yellow-background]*[tck-id-payloads-rebirth-source] REBIRTH
+messages MUST have the 'source' field set in the overall message payload and it MUST have a string
+value representing the Host ID of the Sparkplug Host Application that sent the REBIRTH message.*#
+
+The following is a representation of a REBIRTH message on the topic:
+
+----
+spBv1.0/Sparkplug B Devices/REBIRTH/Raspberry Pi
+----
+
+* The ‘Group ID’ is: Sparkplug B Devices
+* The ‘Edge Node ID’ is: Raspberry Pi
+* This is an REBIRTH message based on the 'REBIRTH' Sparkplug Verb
+
+Consider the following Sparkplug B payload in the REBIRTH message shown above:
+
+----
+{
+        "timestamp": 1486144502122,
+        "source" : "IamHost"
+}
+----
+
+This REBIRTH payload tells the Edge Node to publish NREBIRTH and DREBIRTH(s) messages. This can be
+requested if a Host Application gets an out of order seq number or if a metric arrives in an NDATA
+or DDATA message that was not provided in the original NBIRTH or DBIRTH messages.
+
 [[payloads_b_ncmd]]
 ==== NCMD
 
@@ -1412,7 +1735,7 @@ NCMD messages are used by Host Applications to write to Edge Node outputs and se
 commands to Edge Nodes. Multiple metrics can be supplied in a single NCMD message.
 
 * [tck-testable tck-id-payloads-ncmd-timestamp]#[yellow-background]*[tck-id-payloads-ncmd-timestamp] NCMD
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-ncmd-seq]#[yellow-background]*[tck-id-payloads-ncmd-seq] Every NCMD
 message MUST NOT include a sequence number.*#
@@ -1420,6 +1743,14 @@ message MUST NOT include a sequence number.*#
 messages MUST be published with the MQTT QoS set to 0.*#
 * [tck-testable tck-id-payloads-ncmd-retain]#[yellow-background]*[tck-id-payloads-ncmd-retain] NCMD
 messages MUST be published with the MQTT retain flag set to false.*#
+* [tck-testable tck-id-payloads-ncmd-source-required]#[yellow-background]*[tck-id-payloads-ncmd-source-required] NCMD
+messages MUST include the overall payload 'source' value.*#
+* [tck-testable tck-id-payloads-ncmd-source-value]#[yellow-background]*[tck-id-payloads-ncmd-source-value] NCMD
+messages MUST have the overall payload 'source' value set to the Sparkplug Host Application ID that
+is publishing the NCMD message.*#
+* [tck-testable tck-id-payloads-ncmd-metric-source-required]#[yellow-background]*[tck-id-payloads-ncmd-metric-source-required] NCMD
+messages MAY include a metirc specific 'source' value if the Sparkplug Host Application is
+forwarding metric writes on behalf of another Host Application.*#
 
 The following is a representation of a simple NCMD message on the topic:
 
@@ -1437,17 +1768,18 @@ Consider the following Sparkplug B payload in the NCMD message shown above:
 {
         "timestamp": 1486144502122,
         "metrics": [{
-                "name": "Node Control/Rebirth",
+                "name": "DIGITAL_OUT_1",
                 "timestamp": 1486144502122,
                 "dataType": "Boolean",
                 "value": true
-        }]
+        }],
+        "source": "IamHost"
 }
 ----
 
-This NCMD payload tells the Edge Node to republish its NBIRTH and DBIRTH(s) messages. This can be
-requested if a Host Application gets an out of order seq number or if a metric arrives in an NDATA
-or DDATA message that was not provided in the original NBIRTH or DBIRTH messages.
+The NCMD payload tells the Edge Node to write true to the 'DIGITAL_OUT_1' metric. As a result, the
+DIGITAL_OUT_1 alue should turn true and result in a NDATA message back to the MQTT Server after the
+DIGITAL_OUT_1 is successfully set to true.
 
 [[payloads_b_dcmd]]
 ==== DCMD
@@ -1456,7 +1788,7 @@ DCMD messages are used by Host Applications to write to device outputs and send 
 commands to devices. Multiple metrics can be supplied in a single DCMD message.
 
 * [tck-testable tck-id-payloads-dcmd-timestamp]#[yellow-background]*[tck-id-payloads-dcmd-timestamp] DCMD
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-dcmd-seq]#[yellow-background]*[tck-id-payloads-dcmd-seq] Every DCMD
 message MUST NOT include a sequence number.*#
@@ -1464,6 +1796,14 @@ message MUST NOT include a sequence number.*#
 messages MUST be published with the MQTT QoS set to 0.*#
 * [tck-testable tck-id-payloads-dcmd-retain]#[yellow-background]*[tck-id-payloads-dcmd-retain] DCMD
 messages MUST be published with the MQTT retain flag set to false.*#
+* [tck-testable tck-id-payloads-dcmd-source-required]#[yellow-background]*[tck-id-payloads-dcmd-source-required] DCMD
+messages MUST include the overall payload 'source' value.*#
+* [tck-testable tck-id-payloads-dcmd-source-value]#[yellow-background]*[tck-id-payloads-dcmd-source-value] DCMD
+messages MUST have the overall payload 'source' value set to the Sparkplug Host Application ID that
+is publishing the DCMD message.*#
+* [tck-testable tck-id-payloads-dcmd-metric-source-required]#[yellow-background]*[tck-id-payloads-dcmd-metric-source-required] DCMD
+messages MAY include a metirc specific 'source' value if the Sparkplug Host Application is
+forwarding metric writes on behalf of another Host Application.*#
 
 The following is a representation of a simple DCMD message on the topic:
 
@@ -1491,7 +1831,8 @@ Consider the following Sparkplug B payload in the DCMD message shown above:
                 "timestamp": 1486144502122,
                 "dataType": "Boolean",
                 "value": true
-        }]
+        }],
+        "source": "IamHost"
 }
 ----
 
@@ -1515,14 +1856,15 @@ NDEATH message MUST set the MQTT Will QoS to 1 in the MQTT CONNECT packet.*#
 * [tck-testable tck-id-payloads-ndeath-will-message-retain]#[yellow-background]*[tck-id-payloads-ndeath-will-message-retain] The
 NDEATH message MUST set the MQTT Will Retained flag to false in the MQTT CONNECT packet.*#
 * [tck-testable tck-id-payloads-ndeath-bdseq]#[yellow-background]*[tck-id-payloads-ndeath-bdseq] The
-NDEATH message MUST include the same bdSeq number value that will be used in the associated NBIRTH message.*#
+NDEATH message MUST include the same bdSeq number value that will be used in the associated NBIRTH
+message.*#
 ** This is used by Host Applications to correlate the NDEATH messages with a previously received NBIRTH
 message.
 ** It is important to note that any new CONNECT packet must increment the bdSeq number in the
 payload compared to what was in the previous CONNECT packet. This ensures that any Host Applications
 will be able to distinguish between current and old bdSeq numbers in the event that messages are
-delivered out of order. When incrementing the bdSeq number, if the previous value was 255, the next
-must be zero.
+delivered out of order. When incrementing the bdSeq number, if the previous value was
+18446744073709551615 (max value of a UINT64), the next value must be zero.
 * [tck-testable tck-id-payloads-ndeath-will-message-publisher]#[yellow-background]*[tck-id-payloads-ndeath-will-message-publisher] An
 NDEATH message SHOULD be published by the Edge Node before it intentionally disconnects from the
 MQTT Server.*#
@@ -1543,7 +1885,8 @@ Server.
 ** It should be noted that this timestamp is typically set at the time of the MQTT CONNECT message
 and as a result may not be useful to Host Applications. If the timestamp is set, Host Applications
 SHOULD NOT use it to determine corresponding NBIRTH messages. Instead, the bdSeq number used in the
-NBIRTH and NDEATH messages MUST be used to determine that an NDEATH matches a prior NBIRTH.
+NBIRTH, NREBIRTH, and NDEATH messages MUST be used to determine that an NDEATH matches a prior
+NBIRTH.
 
 The following is a representation of a NDEATH message on the topic:
 
@@ -1560,17 +1903,12 @@ Consider the following Sparkplug B payload in the NDEATH message shown above:
 ----
 {
         "timestamp": 1486144502122,
-        "metrics": [{
-                "name": "bdSeq",
-                "timestamp": 1486144502122,
-                "dataType": "UInt64",
-                "value": 0
-        }]
+        "bdSeq": 0
 }
 ----
 
-The payload metric named bdSeq allows a Host Application to reconcile this NDEATH with the NBIRTH
-that occurred previously.
+The bdSeq number value in the payload allows a Host Application to reconcile this NDEATH with the
+NBIRTH and/or NREBIRTH that occurred previously.
 
 [[payloads_b_ddeath]]
 ==== DDEATH
@@ -1580,14 +1918,15 @@ determines that a device is no longer accessible (i.e. it has turned off, stoppe
 the Edge Node should publish a DDEATH to denote that device connectivity has been lost.
 
 * [tck-testable tck-id-payloads-ddeath-timestamp]#[yellow-background]*[tck-id-payloads-ddeath-timestamp] DDEATH
-messages MUST include a payload timestamp that denotes the time at which the message was
+messages MUST include an overall payload timestamp that denotes the time at which the message was
 published.*#
 * [tck-testable tck-id-payloads-ddeath-seq]#[yellow-background]*[tck-id-payloads-ddeath-seq] Every
 DDEATH message MUST include a sequence number.*#
 * [tck-testable tck-id-payloads-ddeath-seq-inc]#[yellow-background]*[tck-id-payloads-ddeath-seq-inc] Every
 DDEATH message MUST include a sequence number value that is one greater than the previous sequence
-number sent by the Edge Node. This value MUST never exceed 255. If in the previous sequence number
-sent by the Edge Node was 255, the next sequence number sent MUST have a value of 0.*#
+number sent by the Edge Node. This value MUST never exceed 18446744073709551615 (max value of a
+UINT64). If in the previous sequence number sent by the Edge Node was 18446744073709551615, the next
+sequence number sent MUST have a value of 0.*#
 
 The following is a representation of a simple DDEATH message on the topic:
 
@@ -1632,7 +1971,7 @@ Sparkplug Host Application MUST set the Will Retained flag to true in the MQTT C
 * [tck-testable tck-id-payloads-state-will-message-payload]#[yellow-background]*[tck-id-payloads-state-will-message-payload] The
 Death Certificate Payload MUST be JSON UTF-8 data. It MUST include two key/value pairs where one key
 MUST be 'online' and it's value is a boolean 'false'. The other key MUST be 'timestamp' and the
-value MUST be a numeric value representing the current UTC time in milliseconds since Epoch.*#
+value MUST be a numeric value representing the current UTC time in nanoseconds since Epoch.*#
 * [tck-testable tck-id-payloads-state-subscribe]#[yellow-background]*[tck-id-payloads-state-subscribe] After
 establishing an MQTT connection, the Sparkplug Host Application MUST subscribe on it's own
 'spBv1.0/STATE/[sparkplug_host_id]' topic.*#

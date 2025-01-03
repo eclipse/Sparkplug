@@ -48,7 +48,7 @@ Universal Time (UTC). In order to ensure this is the case, all Sparkplug Edge No
 Host Applications must have an accurate mechanism for ensuring their clocks remain accurate. This is
 typically left to the system operating system using technologies such as Network Time Protocol
 (NTP). Regardless of the mechanism used, ensuring all timestamps are accurate and in UTC is
-critical to all timestamps in Sparkplug.
+critical to Sparkplug operations.
 
 [[operational_behavior_case_sensitivity]]
 === Case Sensitivity in Sparkplug
@@ -155,12 +155,17 @@ packet Will Message payload.*#
 Prior to sending an NBIRTH message, the MQTT client associated with the Edge Node must subscribe to
 receive NCMD messages with the following rules.
 
-* [tck-testable tck-id-message-flow-edge-node-ncmd-subscribe]#[yellow-background]*[tck-id-message-flow-edge-node-ncmd-subscribe] The
+* [tck-testable tck-id-message-flow-edge-node-rebirth-subscribe]#[yellow-background]*[tck-id-message-flow-edge-node-rebirth-subscribe] The
 MQTT client associated with the Edge Node MUST subscribe to a topic of the form
+'spBv1.0/group_id/REBIRTH/edge_node_id' where group_id is the Sparkplug Group ID and the edge_node_id
+is the Sparkplug Edge Node ID for this Edge Node. It MUST subscribe on this topic with a QoS of
+0.*#
+** This subscription is mandatory as Edge Nodes MUST be able to respond to 'rebirth requests'.
+* [tck-testable tck-id-message-flow-edge-node-ncmd-subscribe]#[yellow-background]*[tck-id-message-flow-edge-node-ncmd-subscribe] The
+MQTT client associated with the Edge Node SHOULD subscribe to a topic of the form
 'spBv1.0/group_id/NCMD/edge_node_id' where group_id is the Sparkplug Group ID and the edge_node_id
 is the Sparkplug Edge Node ID for this Edge Node. It MUST subscribe on this topic with a QoS of
-1.*#
-** This subscription is mandatory as Edge Nodes MUST be able to respond to 'rebirth requests'.
+0.*#
 
 After subscribing, the Edge Node must follow these additional rules.
 
@@ -176,10 +181,11 @@ Edge Node*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-will-message-payload]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-will-message-payload] The
 Edge Node's MQTT Will Message's payload MUST be a Sparkplug Google Protobuf encoded payload.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-will-message-payload-bdSeq]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-will-message-payload-bdSeq] The
-Edge Node's MQTT Will Message's payload MUST include a metric with the name of 'bdSeq', the datatype
-of INT64, and the value MUST be incremented by one from the value in the previous MQTT CONNECT
-packet unless the value would be greater than 255. If in the previous NBIRTH a value of 255 was
-sent, the next MQTT Connect packet Will Message payload bdSeq number value MUST have a value of 0.*#
+Edge Node's MQTT Will Message's payload MUST include a bdSeq number in the payload and the value
+MUST be incremented by one from the value in the previous MQTT CONNECT packet unless the value would
+be greater than 18446744073709551615 (max value of a UINT64). If in the previous NBIRTH a value of
+18446744073709551615 was sent, the next MQTT Connect packet Will Message payload bdSeq number value
+MUST have a value of 0.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-will-message-qos]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-will-message-qos] The
 Edge Node's MQTT Will Message's MQTT QoS MUST be 1.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-will-message-will-retained]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-will-message-will-retained] The
@@ -222,16 +228,18 @@ Node*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-nbirth-payload]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-nbirth-payload] The
 Edge Node's NBIRTH payload MUST be a Sparkplug Google Protobuf encoded payload.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-nbirth-payload-bdSeq]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-nbirth-payload-bdSeq] The
-Edge Node's NBIRTH payload MUST include a metric with the name of 'bdSeq' the datatype of INT64 and
-the value MUST be the same as the previous MQTT CONNECT packet.*#
+Edge Node's NBIRTH payload MUST include a bdSeq number in the payload and the value MUST be the same
+as the bdSeq number value specified in the immediately previous MQTT CONNECT packet.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-nbirth-qos]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-nbirth-qos] The
 Edge Node's NBIRTH MQTT QoS MUST be 0.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-nbirth-retained]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-nbirth-retained] The
 Edge Node's NBIRTH retained flag MUST be set to false.*#
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-nbirth-payload-seq]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-nbirth-payload-seq] The
-Edge Node's NBIRTH payload MUST include a 'seq' number that is between 0 and 255 (inclusive).*#
+Edge Node's NBIRTH payload MUST include a 'seq' number that is between 0 and 18446744073709551615
+(inclusive).*#
 ** This will become the starting sequence number which all following messages will include a
-sequence number that is one more than the previous up to 255 where it wraps back to zero.
+sequence number that is one more than the previous up to 18446744073709551615 (max value of a
+UINT64) where it wraps back to zero.
 * [tck-testable tck-id-message-flow-edge-node-birth-publish-phid-offline]#[yellow-background]*[tck-id-message-flow-edge-node-birth-publish-phid-offline] If
 the Edge Node is configured to wait for a Primary Host Application, it is connected to the MQTT
 Server, and receives a STATE message on its configured Primary Host, the timestamp value in the
@@ -279,19 +287,19 @@ show the Edge Node in an 'online' state once it publishes its NBIRTH and DBIRTH 
 
 . If at any point in time the Edge Node MQTT Client loses connectivity to the defined MQTT
 Server(s), a Death Certificate (NDEATH) is issued by the MQTT Server on behalf of the Edge Node.
-Upon receipt of the Death Certificate with a bdSeq number metric that matches the preceding bdSeq
-number in the NBIRTH messages, the Primary Host Application should set the state of the Edge Node
-to ‘online=false’ and update all metric timestamps related to this Edge Node. Any defined metrics
-will be set to a STALE data quality.
+Upon receipt of the Death Certificate with a bdSeq number that matches the preceding bdSeq number in
+the NBIRTH messages, the Primary Host Application should set the state of the Edge Node to
+‘online=false’ and update all metric timestamps related to this Edge Node to 'now' using its own
+system clock. Any defined metrics will be set to a STALE data quality.
 
 .. The bdSeq number is used to correlate an NBIRTH with a NDEATH. Because the NDEATH is included in
 the MQTT CONNECT packet, its timestamp (if included) is not useful to Sparkplug Host Applications.
-Instead, a bdSeq number must be included as a metric in the payload of the NDEATH. The same bdSeq
-number metric value must also be included in the NBIRTH message published immediately after the MQTT
-CONNECT. This allows Host Applications to know that a NDEATH matches a specific NBIRTH message. This
-is required because timing with Will Messages may result in NDEATH messages arriving after a
-new/next NBIRTH message. The bdSeq number allows Host Applications to know when it must consider the
-Edge Node offline.
+Instead, a bdSeq number must be included in the payload of the NDEATH. The same bdSeq number value
+must also be included in the NBIRTH message payload published immediately after the MQTT CONNECT.
+This allows Host Applications to know that a NDEATH matches a specific NBIRTH message. This is
+required because timing with Will Messages may result in NDEATH messages arriving after a new/next
+NBIRTH message. The bdSeq number allows Host Applications to know when it must consider the Edge
+Node offline.
 
 [[operational_behavior_edge_node_session_termination]]
 === Edge Node Session Termination
@@ -426,9 +434,9 @@ Device's DBIRTH MQTT QoS MUST be 0.*#
 * [tck-testable tck-id-message-flow-device-birth-publish-dbirth-retained]#[yellow-background]*[tck-id-message-flow-device-birth-publish-dbirth-retained] The
 Device's DBIRTH retained flag MUST be set to false.*#
 * [tck-testable tck-id-message-flow-device-birth-publish-dbirth-payload-seq]#[yellow-background]*[tck-id-message-flow-device-birth-publish-dbirth-payload-seq] The
-Device's DBIRTH payload MUST include a 'seq' number that is between 0 and 255 (inclusive) and be one
-more than was included in the prior Sparkplug message sent from the Edge Node associated with this
-Device.*#
+Device's DBIRTH payload MUST include a 'seq' number that is between 0 and 18446744073709551615
+(inclusive) and be one more than was included in the prior Sparkplug message sent from the Edge Node
+associated with this Device.*#
 
 In order to expose and populate the metrics from any device, the following simple
 session diagram outlines the requirements:
@@ -634,7 +642,7 @@ Application DEATH Certificate that indicates STATE is online=false with the mess
 to true in the MQTT Will Message. Then the Primary Host Application BIRTH Certificate must be
 published with a STATE payload of online=true. In both of these messages the timestamp value must
 match each other and represent the current connection time. The timestamp value must be a JSON
-number and represent the number of UTC milliseconds since Epoch.
+number and represent the number of UTC nanoseconds since Epoch.
 
 . As the Edge Node walks its available MQTT Server list, it will establish an MQTT Session with a
 server that has a STATE message with a JSON payload that has online=true. The Edge Node can stay
@@ -806,7 +814,7 @@ host_id is the unique identifier of the Sparkplug Host Application.*#
 Death Certificate Payload registered as the MQTT Will Message in the MQTT CONNECT packet MUST be
 JSON UTF-8 data. It MUST include two key/value pairs where one key MUST be 'online' and it's value
 is a boolean 'false'. The other key MUST be 'timestamp' and the value MUST be a numeric value
-representing the current UTC time in milliseconds since Epoch.*#
+representing the current UTC time in nanoseconds since Epoch.*#
 * [tck-testable tck-id-operational-behavior-host-application-death-qos]#[yellow-background]*[tck-id-operational-behavior-host-application-death-qos] The
 Sparkplug Host Application's Death MQTT QoS MUST be 1 (at least once).*#
 * [tck-testable tck-id-operational-behavior-host-application-death-retained]#[yellow-background]*[tck-id-operational-behavior-host-application-death-retained] The
@@ -935,6 +943,10 @@ to consider.
 There are two types of command (CMD) verbs in Sparkplug. These are NCMD and DCMD messages which
 target Edge Nodes and Devices respectively.
 
+* [tck-testable tck-id-operational-behavior-commands-source]#[yellow-background]*[tck-id-operational-behavior-commands-source] Command
+messages MUST have the 'source' field set in the payload and it MUST have a string value
+representing the Host ID of the Sparkplug Host Application that sent the command message.*#
+
 [[operational_behavior_rebirth]]
 === Rebirth Requests
 
@@ -946,60 +958,78 @@ Host Application will receive it without ever having received the BIRTH message(
 the Edge Node. As a result, it can send a 'Rebirth Request' using the 'REBIRTH' Sparkplug verb to
 reset its understanding of that Edge Node and become aware of all metrics associated with it.
 
-These are the rules around the 'REBIRTH' Sparkplug verb.
+These are the rules around the 'REBIRTH', 'NREBIRTH', and 'DREBIRTH' Sparkplug verbs.
 
 A 'Rebirth Request' consists of the following message from a Sparkplug Host Application with the
 following characteristics.
 
-* [tck-testable tck-id-operational-behavior-data-commands-ncmd-rebirth-verb]#[yellow-background]*[tck-id-operational-behavior-data-commands-ncmd-rebirth-verb] A
+* [tck-testable tck-id-operational-behavior-rebirth-verb]#[yellow-background]*[tck-id-operational-behavior-rebirth-verb] A
 Rebirth Request MUST use the REBIRTH Sparkplug verb.*#
-* [tck-testable tck-id-operational-behavior-data-commands-ncmd-rebirth-source]#[yellow-background]*[tck-id-operational-behavior-data-commands-ncmd-rebirth-name] A
-Rebirth Request MUST include a 'source' in the payload and it's value MUST be the Host Application's
-host_id.*#
+* [tck-testable tck-id-operational-behavior-rebirth-source]#[yellow-background]*[tck-id-operational-behavior-rebirth-source] The
+Rebirth Request MUST have the 'source' field set in the payload and it MUST have a string value
+representing the Host ID of the Sparkplug Host Application that sent the REBIRTH message.*#
 
 Upon receipt of a Rebirth Request, the Edge Node must do the following.
 
-#FIXME - everything below
-
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-1]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-1] When
-an Edge Node receives a Rebirth Request, it MUST immediately stop sending DATA messages.*#
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-2]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-2] After
-an Edge Node stops sending DATA messages, it MUST send a complete BIRTH sequence including the
-NBIRTH and DBIRTH(s) if applicable.*#
-* [tck-testable tck-id-operational-behavior-data-commands-rebirth-action-3]#[yellow-background]*[tck-id-operational-behavior-data-commands-rebirth-action-3] The
-NBIRTH MUST include the same bdSeq metric with the same value it had included in the Will Message
-of the previous MQTT CONNECT packet.*#
+* [tck-testable tck-id-operational-behavior-rebirth-action-1]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-1] When
+an Edge Node receives a Rebirth Request, it MUST immediately pause sending of DATA messages.*#
+* [tck-testable tck-id-operational-behavior-rebirth-action-2]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-2] After
+an Edge Node stops sending DATA messages, it MUST send a complete REBIRTH sequence including the
+NREBIRTH and DREBIRTH(s) if applicable.*#
+* [tck-testable tck-id-operational-behavior-rebirth-action-3]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-3] The
+NREBIRTH MUST include the same bdSeq number in the payload with the same value it had included in
+the Will Message of the immediately previous MQTT CONNECT packet.*#
 ** Because a new MQTT Session is not being established, there is no reason to update the bdSeq number
-* After the new BIRTH sequence is published, the Edge Node may continue sending DATA messages.
+* [tck-testable tck-id-operational-behavior-rebirth-action-4]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-4] The
+NREBIRTH payload MUST use a seq number that specified to integrate into the existing DATA stream
+from the Edge Node.
+** For example, if the next pending DATA message sequence number will be 100 and the Edge Node has
+two devices, the NBIRTHs sequence number value must be 97. This means the sequence numbers will be:
+NBIRTH: 97, DBIRTH 1: 98, DBIRTH 2: 99, DATA: 100
+** This allows other host applications to continue running without being affected by another Host
+Application getting in sync with the data stream.
+* [tck-testable tck-id-operational-behavior-rebirth-action-5]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-5] The
+NREBIRTH payload MUST account for sequence number rollover if required based on the next pending
+DATA message and the number of devices under the scope of the Edge Node.
+** For example, if the next pending DATA message sequence number will be 1 and the Edge Node has
+two devices, the NBIRTHs sequence number value must be 18446744073709551614. This means the sequence
+numbers will be: NBIRTH: 18446744073709551614, DBIRTH 1: 18446744073709551615, DBIRTH 2: 0, DATA: 1
+** The above example is based on the fact that the max value of a UINT64 is 18446744073709551615
+* [tck-testable tck-id-operational-behavior-rebirth-action-6]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-6] Each
+DREBIRTH payload MUST use a seq number that is incremented by one from the previous message.
+* [tck-testable tck-id-operational-behavior-rebirth-action-7]#[yellow-background]*[tck-id-operational-behavior-rebirth-action-7] Each
+NREBIRTH  and DREBIRTH payload MUST include the current values for all metrics to properly integrate
+into the existing DATA stream.
+* After the new REBIRTH sequence is published, the Edge Node MAY continue sending DATA messages.
 
-Another common use case for sending commands is to use them to 'write' to outputs on Sparkplug
-Devices. Often these are PLCs or RTUs with writable outputs. NCMD and DCMD messages can be used for
-these writes. The general flow is for a Host Application to send a command message, the Edge Device
-receives the message and writes to the output using the native protocol. Then when the output
-changes value, it results in the Edge Node publishing a DATA message denoting the new value.
+Sparkplug commands are used to 'write' to outputs on Sparkplug Edge Nodes or Devices. Often these
+are PLCs or RTUs with writable outputs. NCMD and DCMD messages can be used for these writes. The
+general flow is for a Host Application to send a command message, the Edge Device receives the message
+and writes to the output using the native protocol. Then when the output changes value, it results
+in the Edge Node publishing a DATA message denoting the new value.
 
 For Edge Node level commands, the following rules must be followed.
 
-* [tck-testable tck-id-operational-behavior-data-commands-ncmd-verb]#[yellow-background]*[tck-id-operational-behavior-data-commands-ncmd-verb] An
+* [tck-testable tck-id-operational-behavior-commands-ncmd-verb]#[yellow-background]*[tck-id-operational-behavior-commands-ncmd-verb] An
 Edge Node level command MUST use the NCMD Sparkplug verb.*#
-* [tck-testable tck-id-operational-behavior-data-commands-ncmd-metric-name]#[yellow-background]*[tck-id-operational-behavior-data-commands-ncmd-metric-name] An
+* [tck-testable tck-id-operational-behavior-commands-ncmd-metric-name]#[yellow-background]*[tck-id-operational-behavior-commands-ncmd-metric-name] An
 NCMD message SHOULD include a metric name that was included in the associated NBIRTH message for the
 Edge Node.*#
 ** Sparkplug Edge Node Applications should be resilient to receiving metrics names that were not
 included in the NBIRTH message.
-* [tck-testable tck-id-operational-behavior-data-commands-ncmd-metric-value]#[yellow-background]*[tck-id-operational-behavior-data-commands-ncmd-metric-value] An
+* [tck-testable tck-id-operational-behavior-commands-ncmd-metric-value]#[yellow-background]*[tck-id-operational-behavior-commands-ncmd-metric-value] An
 NCMD message MUST include a compatible metric value for the metric name that it is writing to.*#
 ** In other words, if the metric has a datatype of a boolean the value must be true or false.
 
 For Device level commands, the following rules must be followed.
 
-* [tck-testable tck-id-operational-behavior-data-commands-dcmd-verb]#[yellow-background]*[tck-id-operational-behavior-data-commands-dcmd-verb] A
+* [tck-testable tck-id-operational-behavior-commands-dcmd-verb]#[yellow-background]*[tck-id-operational-behavior-commands-dcmd-verb] A
 Device level command MUST use the DCMD Sparkplug verb.*#
-* [tck-testable tck-id-operational-behavior-data-commands-dcmd-metric-name]#[yellow-background]*[tck-id-operational-behavior-data-commands-dcmd-metric-name] A
+* [tck-testable tck-id-operational-behavior-commands-dcmd-metric-name]#[yellow-background]*[tck-id-operational-behavior-commands-dcmd-metric-name] A
 DCMD message SHOULD include a metric name that was included in the associated DBIRTH message for the
 Device.*#
 ** Sparkplug Edge Node Applications should be resilient to receiving metrics names that were not
 included in the DBIRTH message.
-* [tck-testable tck-id-operational-behavior-data-commands-dcmd-metric-value]#[yellow-background]*[tck-id-operational-behavior-data-commands-dcmd-metric-value] A
+* [tck-testable tck-id-operational-behavior-commands-dcmd-metric-value]#[yellow-background]*[tck-id-operational-behavior-commands-dcmd-metric-value] A
 DCMD message MUST include a compatible metric value for the metric name that it is writing to.*#
 ** In other words, if the metric has a datatype of a boolean the value must be true or false.

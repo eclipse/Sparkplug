@@ -343,8 +343,9 @@ context of the Edge Node ID under which it exists.
 Identifies a single 'tag change event' in the Sparkplug Payload. It represents an event that 
 occurred at the Edge Node or Device such as a value or quality of a data point changing. For 
 example, it could represent the value of an analog or boolean changing at a Sparkplug Device. A 
-Sparkplug Metric typically includes a name, value, and timestamp. Sparkplug Metrics are also used in 
-NCMD and DCMD messages to send messages to Edge Nodes and Devices to change values at the Edge.
+Sparkplug Metric typically includes a name, value, quality, and timestamp. Sparkplug Metrics are
+also used in NCMD and DCMD messages to send messages to Edge Nodes and Devices to change values at
+the Edge.
 
 [[introduction_datatypes]]
 ===== Data Types
